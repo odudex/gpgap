@@ -1,14 +1,24 @@
+import os
+import sys
 import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkfont
 from pages import LoginPage, SignFile, NewKey
-import ctypes
 
-# Fix window scaling on Windows 10/11
-try:
-    ctypes.windll.shcore.SetProcessDpiAwareness(1)
-except:
-    pass  # If not on Windows or API not available
+def configure_dpi():
+    """Configure DPI scaling based on platform"""
+    if sys.platform == 'win32':
+        try:
+            from ctypes import windll
+            windll.shcore.SetProcessDpiAwareness(1)
+        except:
+            pass
+    elif sys.platform == 'linux':
+        # Try both GTK and QT environment variables
+        os.environ["GDK_SCALE"] = "1"
+        os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "0"
+
+configure_dpi()
 
 class GPGap(tk.Tk):
     """Main application class for GPGap GUI."""
