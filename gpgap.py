@@ -2,6 +2,13 @@ import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkfont
 from pages import LoginPage, SignFile, NewKey
+import ctypes
+
+# Fix window scaling on Windows 10/11
+try:
+    ctypes.windll.shcore.SetProcessDpiAwareness(1)
+except:
+    pass  # If not on Windows or API not available
 
 class GPGap(tk.Tk):
     """Main application class for GPGap GUI."""
@@ -62,7 +69,7 @@ class GPGap(tk.Tk):
 
     def _calculate_font_size(self, height):
         """Calculate font size based on window height and width."""
-        self.font_size = max(8, height // 100)
+        self.font_size = max(10, height // 100)
 
     def _configure_styles(self):
         """Configures the ttk styles using the dynamic font."""
@@ -99,8 +106,9 @@ class GPGap(tk.Tk):
             # Update font size only if it has changed
             if self.font_size != self.dynamic_font.actual("size"):
                 self.dynamic_font.configure(size=self.font_size)
-                self.dynamic_font_small.configure(size=(3 * self.font_size) // 4)
-            # print (f"Font size updated to: {self.dynamic_font.actual('size')}")
+                small_font_size = (3 * self.font_size) // 4
+                small_font_size = max(10, small_font_size)
+                self.dynamic_font_small.configure(size=small_font_size)
 
 
     def show_frame(self, page_name: str):
