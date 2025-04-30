@@ -1,0 +1,145 @@
+import os
+import cv2
+from tkinter import ttk
+from PIL import Image, ImageTk
+from qrcode import QRCode
+from pyzbar.pyzbar import decode
+
+class MediaDisplay(ttk.Frame):
+    """
+    A ttk.Frame subclass that can display a default image, generate and show QR codes,
+    or stream and scan a live webcam feed.
+    """
+
+    def __init__(self, parent, default_image_name="GPGap.png", **kwargs):
+        """
+        Initialize the MediaDisplay frame.
+        """
+        super().__init__(parent, **kwargs)
+        self.default_image_path = os.path.join(
+            os.path.dirname(__file__), "assets", default_image_name
+        )
+        self.cap = None
+        self.camera_running = False
+        self.current_image = None
+        self.qr_found = None
+        # track scheduled update callback
+        self.after_id = None
+
+        # the area where we show images/QR/webcam
+        self.media_label = ttk.Label(self, background="black")
+        self.media_label.pack(fill="both", expand=True)
+
+        # button to stop camera
+        self.stop_scan_button = ttk.Button(
+            self, text="Cancel Scan", command=self.stop_scan
+        )
+
+        self.load_default_image()
+
+    def _resize_image_to_fit_label(self, img):
+        """
+        Resize a PIL Image to fit inside the webcam_label while preserving aspect ratio.
+        """
+        w = self.media_label.winfo_width()
+        h = self.media_label.winfo_height()
+        if w < 2 or h < 2:
+            return img
+        img_ratio = img.width / img.height
+        lbl_ratio = w / h
+        if lbl_ratio > img_ratio:
+            new_h = h
+            new_w = int(h * img_ratio)
+        else:
+            new_w = w
+            new_h = int(w / img_ratio)
+        return img.resize((new_w, new_h), Image.LANCZOS)
+
+    def load_default_image(self):
+        """
+        Load and display the default image from assets or show a black placeholder on failure.
+        """
+        try:
+            img = Image.open(self.default_image_path)
+        except Exception:
+            img = Image.new("RGB", (200, 200), "black")
+        img = self._resize_image_to_fit_label(img)
+        self.current_image = ImageTk.PhotoImage(img)
+        self.media_label.config(image=self.current_image, anchor="center")
+
+    def export_qr_code_image(self, qr_data: str) -> None:
+        """
+        Create a QR code from the provided data and display it in the label.
+
+        Parameters:
+            qr_data (str): The string data to encode into the QR code.
+        """
+        qr = QRCode()
+        qr.add_data(qr_data)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
+        self.update_idletasks()
+        size = min(
+            self.media_label.winfo_width(), self.media_label.winfo_height()
+        )
+        if size > 1:
+            img = img.resize((size, size), Image.NEAREST)
+        self.current_image = ImageTk.PhotoImage(img)
+        self.media_label.config(image=self.current_image, anchor="center")
+
+    def start_scan(self):
+        """
+        Start capturing video from the default camera, show the cancel button,
+        and begin the update loop to display frames.
+        """
+        self.cap = cv2.VideoCapture(0)
+        if not self.cap.isOpened():
+            return
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        self.stop_scan_button.pack(pady=5)
+        self.camera_running = True
+        self._update()
+
+    def stop_scan(self):
+        """
+        Stop the webcam capture, hide the cancel button, release resources,
+        and reload the default image.
+        """
+        self.camera_running = False
+        if self.cap:
+            self.cap.release()
+        # cancel any pending update callbacks
+        if self.after_id is not None:
+            self.after_cancel(self.after_id)
+            self.after_id = None
+        self.stop_scan_button.pack_forget()
+        self.load_default_image()
+
+    def _update(self):
+        """
+        Internal method called periodically to grab a frame from the webcam,
+        attempt QR code detection, and update the display.
+
+        If a QR code is found, its data is stored in self.qr_found and the loop exits.
+        Otherwise, the current frame is shown and the method reschedules itself.
+        """
+        if not self.camera_running:
+            return
+        ret, frame = self.cap.read()
+        if ret:
+            decoded = decode(frame)
+            if decoded:
+                self.qr_found = decoded[0].data.decode("utf-8")
+                return
+            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            img = Image.fromarray(rgb)
+            img = self._resize_image_to_fit_label(img)
+            self.current_image = ImageTk.PhotoImage(img)
+            self.media_label.config(image=self.current_image, anchor="center")
+        # schedule next frame update and keep its ID for cancellation
+        self.after_id = self.after(30, self._update)
+
+    def destroy(self):
+        self.stop_scan()
+        super().destroy()

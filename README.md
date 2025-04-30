@@ -1,0 +1,1 @@
+An air-gapped GPG key and signature assistant

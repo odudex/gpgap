@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "gpgap"
+version = "0.1.0"
+description = "Air-gapped GPG key and signature assistant"
+authors = ["Odudex <odudex@proton.me>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.12.3,<3.14"
+cryptography = "^44.0.2"
+pyasn1 = "^0.6.1"
+qrcode = "^8.1"
+opencv-python = "^4.11.0.86"
+pyzbar = "^0.1.9"
+pillow = "^11.1.0"
+black = "^25.1.0"
+
+[tool.poetry.group.dev.dependencies]
+pyinstaller = "^6.13.0"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
