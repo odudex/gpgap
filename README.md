@@ -1,4 +1,6 @@
-# GPGap
+<p align="center">
+   <img src="assets/GPGap.png" alt="GPGap" width="25%">
+</p>
 
 **Air-gapped GPG signing Bitcoin-style**
 
