@@ -34,6 +34,12 @@ cd gpgap
 ```
 
 # Install dependencies
+In case your system was not shipped with tkinter:
+```bash
+sudo apt install python3-tk
+```
+
+Install python packages on virtual environment:
 ```bash
 poetry install
 ```
