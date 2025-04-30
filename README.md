@@ -14,21 +14,11 @@ GPGap is an experimental Python application that lets you perform GPG signatures
    - Packages data for transport to the signer using QR Codes
 2. **External signer (Krux)**  
    - Generate ECDSA keys on secp256k1. Keys are derived from user entropy.
-   - Export public keys to the host to conditioned, stored and shared.
-   - Signs requests over QR Codes and export it back to the host
+   - Export public keys to the coordinator to be conditioned, stored and shared.
+   - Signs and export it back to the coordinator over QR Codes
 3. **Backup & recovery**  
    - Keys can be backed up as a BIP39 mnemonic (or other Bitcoin-style methods)  
    - Ensures recoverability even if the hardware is lost
-
----
-
-## GPGap Features
-
-- **Key creation & management**  
-  
-  - Import existing keys
-- **Air-gapped signing workflow**  
-  - Prepares data on host, signs on isolated device  
 
 ---
 
