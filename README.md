@@ -27,7 +27,7 @@ GPGap is an experimental Python application that lets you perform GPG signatures
 
 ```bash
 # Clone the repo
-git clone https://github.com/odudex/gpgap.git
+git clone --recurse-submodules https://github.com/odudex/gpgap.git
 cd gpgap
 ```
 
