@@ -139,7 +139,7 @@ class NewKey(tk.Frame):
 
     def scan_raw_pubkey(self):
             """Scan a raw public key from the camera."""
-            self._update_attributes_display(SCAN_PUB_KEY_INFO, state=tk.NORMAL)
+            self._update_attributes_display(SCAN_PUB_KEY_INFO)
             self.media_display.load_default_image()
             # Create a frame for the buttons
             self.scan_buttons_frame.columnconfigure(0, weight=1)
