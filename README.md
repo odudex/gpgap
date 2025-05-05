@@ -33,7 +33,10 @@ git clone --recurse-submodules https://github.com/odudex/gpgap.git
 cd gpgap
 ```
 
-# Install dependencies
+### Install dependencies
+
+[Install Poetry](https://python-poetry.org/docs/#installation)
+
 In case your system was not shipped with tkinter:
 ```bash
 sudo apt install python3-tk
