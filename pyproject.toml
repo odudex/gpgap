@@ -6,7 +6,7 @@ authors = ["Odudex <odudex@proton.me>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.12.3,<3.14"
+python = ">=3.10.6,<3.14"
 cryptography = "^44.0.2"
 pyasn1 = "^0.6.1"
 qrcode = "^8.1"
@@ -15,6 +15,7 @@ pyzbar = "^0.1.9"
 pillow = "^11.1.0"
 black = "^25.1.0"
 standard-imghdr = "^3.13.0"
+numpy = "^2.2.5"
 
 [tool.poetry.group.dev.dependencies]
 pyinstaller = "^6.13.0"
