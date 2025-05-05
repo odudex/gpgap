@@ -22,8 +22,8 @@ class GPGap(tk.Tk):
         # Create dynamic fonts based on initial height
         self.dynamic_font = tkfont.Font(family="TkDefaultFont")
         self.dynamic_font_small = tkfont.Font(family="TkDefaultFont")
-        self.dynamic_font.configure(size=self.font_size)
-        self.dynamic_font_small.configure(size=(3 * self.font_size) // 4)
+        self.font_scale = self.dynamic_font.measure("AA") // self.font_size
+        self.font_scale = max(1, self.font_scale)
 
 
         # Store colors
@@ -59,12 +59,19 @@ class GPGap(tk.Tk):
         # show the first page
         self.show_frame("LoginPage")
 
+        self._calculate_font_size()
+        self.dynamic_font.configure(size=self.font_size)
+        self.dynamic_font_small.configure(size=(3 * self.font_size) // 4)
+        
         # Bind resize event to update font size
         self.bind("<Configure>", self._on_resize)
 
-    def _calculate_font_size(self, height):
+    def _calculate_font_size(self):
         """Calculate font size based on window height and width."""
-        self.font_size = max(10, height // 50)
+        self.font_size = self.winfo_height() // 50
+        self.font_size //= self.font_scale
+        self.font_size = max(10, self.font_size)
+        
 
     def _configure_styles(self):
         """Configures the ttk styles using the dynamic font."""
@@ -96,7 +103,7 @@ class GPGap(tk.Tk):
         """Handle window resize event to update font size."""
         # Only react to configure events on the main window itself
         if event.widget == self:
-            self._calculate_font_size(self.winfo_height())
+            self._calculate_font_size()
 
             # Update font size only if it has changed
             if self.font_size != self.dynamic_font.actual("size"):
