@@ -35,12 +35,12 @@ class MediaDisplay(ttk.Frame):
             self, text="Cancel Scan", command=self.stop_scan
         )
 
-        self.load_default_image()
 
     def _resize_image_to_fit_label(self, img):
         """
         Resize a PIL Image to fit inside the webcam_label while preserving aspect ratio.
         """
+        self.update_idletasks()
         w = self.media_label.winfo_width()
         h = self.media_label.winfo_height()
         if w < 2 or h < 2:

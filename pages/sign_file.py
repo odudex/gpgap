@@ -57,7 +57,7 @@ class SignFile(tk.Frame):
     def on_show(self):
         """Called by the controller when the frame is shown."""
         self.grid_rowconfigure(1, weight=2)  # Attributes and info
-        self.grid_rowconfigure(2, weight=1, minsize=self.controller.font_height * 4)  # Buttons
+        self.grid_rowconfigure(2, weight=1, minsize=self.controller.font_size * 4)  # Buttons
         self.grid_rowconfigure(3, weight=4)  # Media/QR/camera
         self.grid_columnconfigure(0, weight=1)
 

@@ -66,13 +66,14 @@ class NewKey(tk.Frame):
         for widget in self.grid_slaves():
             widget.grid_forget()
         self.grid_rowconfigure(0, weight=1)  # Attributes and info
-        self.grid_rowconfigure(1, weight=1, minsize=self.controller.font_height * 6)  # Entries
-        self.grid_rowconfigure(2, weight=1, minsize=self.controller.font_height * 4)  # Buttons
+        self.grid_rowconfigure(1, weight=1, minsize=self.controller.font_size * 6)  # Entries
+        self.grid_rowconfigure(2, weight=1, minsize=self.controller.font_size * 4)  # Buttons
         self.grid_rowconfigure(3, weight=2)  # Media/QR/camera
         self.grid_columnconfigure(0, weight=1)
         self.attributes_display.config(font=self.controller.dynamic_font_small)
         self.attributes_display.grid(row=0, column=0, sticky="nsew", padx=10, pady=5)
         self.media_display.grid(row=3, column=0, sticky="nsew")
+        self.media_display.load_default_image()
 
         self.collect_uid()
 

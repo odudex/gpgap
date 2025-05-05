@@ -5,20 +5,6 @@ from tkinter import ttk
 import tkinter.font as tkfont
 from pages import LoginPage, SignFile, NewKey
 
-def configure_dpi():
-    """Configure DPI scaling based on platform"""
-    if sys.platform == 'win32':
-        try:
-            from ctypes import windll
-            windll.shcore.SetProcessDpiAwareness(1)
-        except:
-            pass
-    elif sys.platform == 'linux':
-        # Try both GTK and QT environment variables
-        os.environ["GDK_SCALE"] = "1"
-        os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "0"
-
-configure_dpi()
 
 class GPGap(tk.Tk):
     """Main application class for GPGap GUI."""
@@ -31,8 +17,7 @@ class GPGap(tk.Tk):
         initial_width = int(screen_width * 0.5)
         initial_height = int(screen_height * 0.8)
         self.geometry(f"{initial_width}x{initial_height}")
-        self.font_height = 22
-        self._calculate_font_size(initial_height)
+        self.font_size = 22
 
         # Create dynamic fonts based on initial height
         self.dynamic_font = tkfont.Font(family="TkDefaultFont")
@@ -79,7 +64,7 @@ class GPGap(tk.Tk):
 
     def _calculate_font_size(self, height):
         """Calculate font size based on window height and width."""
-        self.font_size = max(10, height // 100)
+        self.font_size = max(10, height // 50)
 
     def _configure_styles(self):
         """Configures the ttk styles using the dynamic font."""

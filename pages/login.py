@@ -29,6 +29,12 @@ class LoginPage(tk.Frame):
         # Pubkey frame widgets
         self.setup_menu_frame()
 
+    def on_show(self):
+        """
+        Called when this page is shown.
+        """
+        self.media_display.load_default_image()
+
     
     def setup_menu_frame(self):
         
