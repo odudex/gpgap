@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 import logging
 from media import MediaDisplay
+from tkinter import messagebox
 
 DEFAULT_SIG_EXTENSION = ".sig"
 SIG_FILE_TYPES = [("Signature files", f"*{DEFAULT_SIG_EXTENSION}")]
@@ -16,6 +17,7 @@ NOTATION_NAME = "signature"
 NOTATION_VALUE = "GPGap"
 TEXT_WIDGET_HEIGHT = 10
 
+
 class SignFile(tk.Frame):
     """Class to handle file signing"""
 
@@ -25,17 +27,17 @@ class SignFile(tk.Frame):
         self.configure(bg=controller.bg_color)  # Comment this to debug widget areas
 
         self.key = None
-        self.file_path: Path | None = None # Use type hints and Path
+        self.file_path: Path | None = None  # Use type hints and Path
         self.file_data: bytes | None = None
         self.creation_time: datetime | None = None
         self.notation = {
             NOTATION_NAME: NOTATION_VALUE,
         }
-        self.sig_data: bytes | None = None # Sig data as bytes
-        self.final_sig: str | None = None # Final signature string
+        self.sig_data: bytes | None = None  # Sig data as bytes
+        self.final_sig: str | None = None  # Final signature string
 
         self.fingerprint_label = ttk.Label(self, text="Fingerprint: ", anchor="center")
-        
+
         self.attributes_display = tk.Text(
             self,
             wrap="word",
@@ -57,7 +59,9 @@ class SignFile(tk.Frame):
     def on_show(self):
         """Called by the controller when the frame is shown."""
         self.grid_rowconfigure(1, weight=2)  # Attributes and info
-        self.grid_rowconfigure(2, weight=1, minsize=self.controller.font_size * 4)  # Buttons
+        self.grid_rowconfigure(
+            2, weight=1, minsize=self.controller.font_size * 4
+        )  # Buttons
         self.grid_rowconfigure(3, weight=4)  # Media/QR/camera
         self.grid_columnconfigure(0, weight=1)
 
@@ -123,7 +127,7 @@ class SignFile(tk.Frame):
             command=lambda: self.controller.show_frame("LoginPage"),
         )
         self.done_button.grid(row=0, column=1, sticky="nsew", padx=10)
-    
+
     def back_from_scan(self):
         """Handles the back button from the scan frame."""
         # Reset the UI to the load file state
@@ -193,7 +197,7 @@ class SignFile(tk.Frame):
         if not file_path_str:
             return
 
-        self.file_path = Path(file_path_str) # Use Path object
+        self.file_path = Path(file_path_str)  # Use Path object
 
         try:
             self.file_data = self.file_path.read_bytes()
@@ -227,21 +231,20 @@ class SignFile(tk.Frame):
                 notation=self.notation,
             )
         except Exception as e:
-             logging.error(f"Error generating signature data: {e}")
-             self._update_attributes_display(f"Error generating signature data:\n{e}")
-             return
+            logging.error(f"Error generating signature data: {e}")
+            self._update_attributes_display(f"Error generating signature data:\n{e}")
+            return
 
         sigdata_hash = hashlib.sha256(self.sig_data).hexdigest()
         self.media_display.export_qr_code_image(sigdata_hash)
 
         self.load_frame.grid_forget()
         self.scan_frame.grid(row=2, column=0, sticky="nsew", pady=10)
-        
 
     def scan_qr(self):
         """Starts the QR code scanning process."""
         self.scan_frame.grid_forget()
-        self.media_display.start_scan() # Assuming this handles its own errors
+        self.media_display.start_scan()  # Assuming this handles its own errors
         self.monitor_scan()
 
     def monitor_scan(self):
@@ -262,7 +265,6 @@ class SignFile(tk.Frame):
                 )
             except:
                 pass
-
 
     def _process_scanned_signature(self):
         """Processes the QR code data once found."""
@@ -294,36 +296,44 @@ class SignFile(tk.Frame):
             )
 
             # Update display with signature and validity
-            self._update_attributes_display(f"{self.final_sig}\n", state=tk.NORMAL) # Keep NORMAL to add tags
+            self._update_attributes_display(
+                f"{self.final_sig}\n", state=tk.NORMAL
+            )  # Keep NORMAL to add tags
             if self.attributes_display:
-                 self.attributes_display.tag_configure("valid", foreground="lime")
-                 self.attributes_display.tag_configure("invalid", foreground="red")
-                 if valid_sig:
-                     self.attributes_display.insert("end", "Signature is valid", "valid")
-                 else:
-                     self.attributes_display.insert("end", "Bad Signature", "invalid")
-                 self.attributes_display.config(state=tk.DISABLED) # Disable after adding tags
+                self.attributes_display.tag_configure("valid", foreground="lime")
+                self.attributes_display.tag_configure("invalid", foreground="red")
+                if valid_sig:
+                    self.attributes_display.insert("end", "Signature is valid", "valid")
+                else:
+                    self.attributes_display.insert("end", "Bad Signature", "invalid")
+                self.attributes_display.config(
+                    state=tk.DISABLED
+                )  # Disable after adding tags
 
             self.save_frame.grid(row=2, column=0, sticky="nsew", pady=10)
-
+            return
 
         except binascii.Error as e:
             logging.error(f"Invalid Base64 data from QR code: {e}")
-            self._update_attributes_display(f"Error decoding QR code:\nInvalid Base64 data.")
-            # Show scan button again to allow retry
-            if self.scan_qr_button:
-                 self.scan_qr_button.pack(pady=5)
-        except Exception as e: # Catch potential errors during sign/verify
+            messagebox.showerror(
+                "QR Code Error", "Error decoding QR code:\nInvalid Base64 data."
+            )
+        except Exception as e:  # Catch potential errors during sign/verify
             logging.error(f"Error processing signature: {e}")
-            self._update_attributes_display(f"Error processing signature:\n{e}")
-            # Show scan button again to allow retry
-            if self.scan_qr_button:
-                 self.scan_qr_button.pack(pady=5)
+            messagebox.showerror(
+                "Signature Processing Error", f"Error processing signature:\n{e}"
+            )
 
+        # Show scan button and QR code again
+        if not self.scan_frame.winfo_ismapped():
+            self.scan_frame.grid(row=2, column=0, sticky="nsew", pady=10)
+        sigdata_hash = hashlib.sha256(self.sig_data).hexdigest()
+        self.media_display.export_qr_code_image(sigdata_hash)
 
     def show_save_options(self):
         """Displays buttons to save the signature"""
         self.scan_frame.grid_forget()
+
     def save_sig(self):
         """Saves the generated signature to a file."""
         if self.final_sig and self.file_path:
@@ -332,18 +342,19 @@ class SignFile(tk.Frame):
                 defaultextension=DEFAULT_SIG_EXTENSION,
                 filetypes=SIG_FILE_TYPES,
                 initialfile=initial_filename,
-                title="Save Signature As"
+                title="Save Signature As",
             )
             if save_path_str:
                 save_path = Path(save_path_str)
                 try:
-                    save_path.write_text(self.final_sig, encoding='utf-8') # Explicit encoding
+                    save_path.write_text(
+                        self.final_sig, encoding="utf-8"
+                    )  # Explicit encoding
                     logging.info(f"Signature saved to {save_path}")
                 except OSError as e:
                     logging.error(f"Error saving signature to {save_path}: {e}")
                     # Optionally show an error message to the user via the UI
                     self._update_attributes_display(f"Error saving signature:\n{e}")
-
 
     def save_manifest(self):
         """Saves a manifest file containing the original file's hash and name."""
@@ -353,15 +364,17 @@ class SignFile(tk.Frame):
                 defaultextension=DEFAULT_MANIFEST_EXTENSION,
                 filetypes=MANIFEST_FILE_TYPES,
                 initialfile=initial_filename,
-                title="Save Manifest As"
+                title="Save Manifest As",
             )
             if save_path_str:
                 save_path = Path(save_path_str)
-                file_name = self.file_path.name # Use Path.name
+                file_name = self.file_path.name  # Use Path.name
                 try:
                     manifest_hash = hashlib.sha256(self.file_data).hexdigest()
                     manifest_content = f"{manifest_hash} *{file_name}\n"
-                    save_path.write_text(manifest_content, encoding='utf-8') # Explicit encoding
+                    save_path.write_text(
+                        manifest_content, encoding="utf-8"
+                    )  # Explicit encoding
                     logging.info(f"Manifest saved to {save_path}")
                 except OSError as e:
                     logging.error(f"Error saving manifest to {save_path}: {e}")

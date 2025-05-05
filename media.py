@@ -5,6 +5,7 @@ from PIL import Image, ImageTk
 from qrcode import QRCode
 from pyzbar.pyzbar import decode
 
+
 class MediaDisplay(ttk.Frame):
     """
     A ttk.Frame subclass that can display a default image, generate and show QR codes,
@@ -34,7 +35,6 @@ class MediaDisplay(ttk.Frame):
         self.stop_scan_button = ttk.Button(
             self, text="Cancel Scan", command=self.stop_scan
         )
-
 
     def _resize_image_to_fit_label(self, img):
         """
@@ -79,9 +79,7 @@ class MediaDisplay(ttk.Frame):
         qr.make(fit=True)
         img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
         self.update_idletasks()
-        size = min(
-            self.media_label.winfo_width(), self.media_label.winfo_height()
-        )
+        size = min(self.media_label.winfo_width(), self.media_label.winfo_height())
         if size > 1:
             img = img.resize((size, size), Image.NEAREST)
         self.current_image = ImageTk.PhotoImage(img)

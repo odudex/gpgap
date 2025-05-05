@@ -19,15 +19,17 @@ KEY_CURVE = EllipticCurveOID.SECP256K1
 
 KEY_CREATION_TIME = datetime(2009, 1, 3, 18, 5, 5, tzinfo=timezone.utc)
 
+
 class KeyManager:
-    """ Class to manage the creation and injection of keys """
+    """Class to manage the creation and injection of keys"""
+
     def __init__(self):
         self.uid = None
         self.key = None
         self.cert_sig = None
 
     def load_key(self, pubkey):
-        """ Create a new key pair and inject a pubkey point from an existing key """
+        """Create a new key pair and inject a pubkey point from an existing key"""
         key = PGPKey.new(KEY_ALGORITHM, KEY_CURVE, created=KEY_CREATION_TIME)
         key._key.keymaterial.p = pubkey._key.keymaterial.p
         key.add_uid(
@@ -45,14 +47,14 @@ class KeyManager:
         x = b[:32]
         y = b[32:]
         return x[::-1] + y[::-1]
-    
+
     def create_key(self, name, email, hex_key_material):
-        """ Create a new key pair and inject a pubkey point from an existing key """
+        """Create a new key pair and inject a pubkey point from an existing key"""
         # secp256r1
         # ext_key_material = bytes.fromhex(hex_key_material)
 
         # secp256k1
-        ext_key_material = self._reverse64(bytes.fromhex(hex_key_material))
+        ext_key_material = self._reverse64(hex_key_material)
 
         self.key = PGPKey.new(KEY_ALGORITHM, KEY_CURVE, created=KEY_CREATION_TIME)
         original_key_point = self.key._key.keymaterial.p.to_mpibytes()
@@ -69,9 +71,9 @@ class KeyManager:
             created=KEY_CREATION_TIME,
         )
         return sig_data
-    
+
     def inject_key(self, inject, ext_sig_data):
-        """ Inject a pubkey point from an existing key """
+        """Inject a pubkey point from an existing key"""
         self.cert_sig = self.key.add_uid(
             self.uid,
             inject=inject,

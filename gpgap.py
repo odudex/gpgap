@@ -6,6 +6,7 @@ from pages import LoginPage, SignFile, NewKey
 
 class GPGap(tk.Tk):
     """Main application class for GPGap GUI."""
+
     def __init__(self):
         super().__init__()
         self.title("GPGap - Air-gapped GPG")
@@ -23,7 +24,6 @@ class GPGap(tk.Tk):
         self.font_scale = self.dynamic_font.measure("AA") / self.font_size
         self.font_scale = max(1, self.font_scale)
 
-
         # Store colors
         self.bg_color = "black"
         self.fg_color = "white"
@@ -33,9 +33,9 @@ class GPGap(tk.Tk):
 
         # Configure ttk style
         self.style = ttk.Style()
-        self.style.theme_use('clam')
+        self.style.theme_use("clam")
 
-        self._configure_styles() # Apply styles using the dynamic font
+        self._configure_styles()  # Apply styles using the dynamic font
 
         # global variables
         self.key = None
@@ -60,7 +60,7 @@ class GPGap(tk.Tk):
         self._calculate_font_size()
         self.dynamic_font.configure(size=self.font_size)
         self.dynamic_font_small.configure(size=(3 * self.font_size) // 4)
-        
+
         # Bind resize event to update font size
         self.bind("<Configure>", self._on_resize)
 
@@ -70,33 +70,44 @@ class GPGap(tk.Tk):
         self.font_size /= self.font_scale
         self.font_size = int(self.font_size)
         self.font_size = max(10, self.font_size)
-        
 
     def _configure_styles(self):
         """Configures the ttk styles using the dynamic font."""
-        self.style.configure('.', background=self.bg_color, foreground=self.fg_color, font=self.dynamic_font)
-        self.style.configure('TFrame', background=self.bg_color)
-        self.style.configure('TLabel', background=self.bg_color, foreground=self.fg_color, font=self.dynamic_font)
         self.style.configure(
-            'TButton',
+            ".",
+            background=self.bg_color,
+            foreground=self.fg_color,
+            font=self.dynamic_font,
+        )
+        self.style.configure("TFrame", background=self.bg_color)
+        self.style.configure(
+            "TLabel",
+            background=self.bg_color,
+            foreground=self.fg_color,
+            font=self.dynamic_font,
+        )
+        self.style.configure(
+            "TButton",
             background=self.button_bg,
             foreground=self.fg_color,
             borderwidth=0,
-            relief='flat',
+            relief="flat",
             focusthickness=0,
             focuscolor=self.bg_color,
-            font=self.dynamic_font
+            font=self.dynamic_font,
         )
         self.style.map(
-            'TButton',
-            background=[('active', self.button_active)],
-            relief=[('pressed', 'sunken')]
+            "TButton",
+            background=[("active", self.button_active)],
+            relief=[("pressed", "sunken")],
         )
-        self.style.configure('TEntry',
-                           fieldbackground=self.entry_bg,
-                           foreground=self.fg_color,
-                           insertcolor=self.fg_color,
-                           font=self.dynamic_font)
+        self.style.configure(
+            "TEntry",
+            fieldbackground=self.entry_bg,
+            foreground=self.fg_color,
+            insertcolor=self.fg_color,
+            font=self.dynamic_font,
+        )
 
     def _on_resize(self, event):
         """Handle window resize event to update font size."""
@@ -111,18 +122,17 @@ class GPGap(tk.Tk):
                 small_font_size = max(10, small_font_size)
                 self.dynamic_font_small.configure(size=small_font_size)
 
-
     def show_frame(self, page_name: str):
         """Raise the frame identified by page_name."""
         frame = self.frames[page_name]
         frame.tkraise()
         if hasattr(frame, "on_show"):
-           frame.on_show()
-
+            frame.on_show()
 
     def on_closing(self):
         # self.media_display.stop_scan()
         self.destroy()
+
 
 if __name__ == "__main__":
     app = GPGap()
