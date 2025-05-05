@@ -1,5 +1,3 @@
-import os
-import sys
 import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkfont
@@ -17,12 +15,12 @@ class GPGap(tk.Tk):
         initial_width = int(screen_width * 0.5)
         initial_height = int(screen_height * 0.8)
         self.geometry(f"{initial_width}x{initial_height}")
-        self.font_size = 22
 
         # Create dynamic fonts based on initial height
         self.dynamic_font = tkfont.Font(family="TkDefaultFont")
         self.dynamic_font_small = tkfont.Font(family="TkDefaultFont")
-        self.font_scale = self.dynamic_font.measure("AA") // self.font_size
+        self.font_size = 22
+        self.font_scale = self.dynamic_font.measure("AA") / self.font_size
         self.font_scale = max(1, self.font_scale)
 
 
@@ -68,8 +66,9 @@ class GPGap(tk.Tk):
 
     def _calculate_font_size(self):
         """Calculate font size based on window height and width."""
-        self.font_size = self.winfo_height() // 50
-        self.font_size //= self.font_scale
+        self.font_size = self.winfo_height() / 50
+        self.font_size /= self.font_scale
+        self.font_size = int(self.font_size)
         self.font_size = max(10, self.font_size)
         
 
