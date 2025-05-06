@@ -254,7 +254,6 @@ class NewKey(tk.Frame):
             return
         self.key_manager.inject_key(
             inject=cert_bytes,
-            ext_sig_data=self.sig_data,
         )
         pubkey_str = str(self.key_manager.key.pubkey)
         uid_valid_sig = False

@@ -4,16 +4,20 @@ from tkinter import ttk
 import tkinter.font as tkfont
 from pages import LoginPage, SignFile, NewKey
 
+
 def configure_dpi():
-     """Configure DPI scaling based on platform"""
-     if sys.platform == 'win32':
-         try:
-             from ctypes import windll
-             windll.shcore.SetProcessDpiAwareness(1)
-         except:
-             pass
+    """Configure DPI scaling based on platform"""
+    if sys.platform == "win32":
+        try:
+            from ctypes import windll
+
+            windll.shcore.SetProcessDpiAwareness(1)
+        except:
+            pass
+
 
 configure_dpi()
+
 
 class GPGap(tk.Tk):
     """Main application class for GPGap GUI."""

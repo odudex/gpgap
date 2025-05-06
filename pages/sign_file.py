@@ -279,7 +279,6 @@ class SignFile(tk.Frame):
             sig = self.key.sign(
                 self.file_data,
                 inject=sig_bytes,
-                ext_sig_data=self.sig_data,
                 created=self.creation_time,
                 notation=self.notation,
             )

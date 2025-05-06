@@ -72,12 +72,11 @@ class KeyManager:
         )
         return sig_data
 
-    def inject_key(self, inject, ext_sig_data):
+    def inject_key(self, inject):
         """Inject a pubkey point from an existing key"""
         self.cert_sig = self.key.add_uid(
             self.uid,
             inject=inject,
-            ext_sig_data=ext_sig_data,
             usage={KeyFlags.Sign},
             hashes=[HashAlgorithm.SHA256],
             ciphers=[SymmetricKeyAlgorithm.AES256],
