@@ -1,4 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
+import sysconfig
 
 
 a = Analysis(
@@ -6,7 +7,8 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[
-        ('/home/odudex/.cache/pypoetry/virtualenvs/gpgap-I9vryVi1-py3.12/lib/python*/site-packages', '.'),
+        # include current Poetry venv site-packages
+        (sysconfig.get_paths()['purelib'], '.'),
         ('assets/*', 'assets'),
     ],
     hiddenimports=[],
