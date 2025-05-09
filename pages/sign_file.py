@@ -15,11 +15,19 @@ MANIFEST_FILE_TYPES = [("Manifest files", f"*{DEFAULT_MANIFEST_EXTENSION}")]
 SIGNATURE_COMMENT = "Comment: GPGap experimental"
 NOTATION_NAME = "signature"
 NOTATION_VALUE = "GPGap"
+
 TEXT_WIDGET_HEIGHT = 10
+BUTTONS_ROW = 2
+BUTTONS_COLUMN = 0
 
 
 class SignFile(tk.Frame):
     """Class to handle file signing"""
+
+    # UI states
+    UI_STATE_LOAD_FILE = 0
+    UI_STATE_SCAN = 1
+    UI_STATE_SAVE = 2
 
     def __init__(self, parent, controller):
         super().__init__(parent)
@@ -36,8 +44,8 @@ class SignFile(tk.Frame):
         self.sig_data: bytes | None = None  # Sig data as bytes
         self.final_sig: str | None = None  # Final signature string
 
+        # Always shown widgets
         self.fingerprint_label = ttk.Label(self, text="Fingerprint: ", anchor="center")
-
         self.attributes_display = tk.Text(
             self,
             wrap="word",
@@ -49,37 +57,13 @@ class SignFile(tk.Frame):
             padx=20,
             pady=10,
         )
-        self.create_load_frame()
-        self.create_scan_frame()
-        self.create_save_frame()
-
         # Media/QR/camera display
         self.media_display = MediaDisplay(self, padding="10")
 
-    def on_show(self):
-        """Called by the controller when the frame is shown."""
-        # self.grid_rowconfigure(1, weight=1)  # Attributes and info
-        self.grid_rowconfigure(
-            2, weight=1, minsize=self.controller.font_size * 4
-        )  # Buttons
-        self.grid_rowconfigure(3, weight=4)  # Media/QR/camera
-        self.grid_columnconfigure(0, weight=1)
-
-        self.key = self.controller.key
-        for widget in self.grid_slaves():
-            widget.grid_forget()
-        self.fingerprint_label.config(
-            text=f"Fingerprint: {self.key.fingerprint.__pretty__() if self.key else 'N/A'}",
-            font=self.controller.dynamic_font_small,
-        )
-        self.fingerprint_label.grid(row=0, column=0, sticky="ew", padx=10, pady=5)
-        self.attributes_display.grid(row=1, column=0, sticky="ew", padx=10, pady=5)
-        self.attributes_display.config(font=self.controller.dynamic_font_small)
-        self.media_display.grid(row=3, column=0, sticky="nsew")
-        self.media_display.grid_propagate(False)
-        self.display_key_info()
-        self.load_frame.grid(row=2, column=0, sticky="nsew", pady=10)
-        self.media_display.load_default_image()
+        # Intermittent widget fames
+        self.create_load_frame()
+        self.create_scan_frame()
+        self.create_save_frame()
 
     def create_load_frame(self):
         self.load_frame = ttk.Frame(self)
@@ -150,14 +134,56 @@ class SignFile(tk.Frame):
         )
         self.done_button.grid(row=0, column=4, sticky="nsew", padx=10)
 
+    def on_show(self):
+        """Called by the controller when the frame is shown."""
+        # self.grid_rowconfigure(1, weight=1)  # Attributes and info
+        self.grid_rowconfigure(
+            2, weight=1, minsize=self.controller.font_size * 4
+        )  # Buttons
+        self.grid_rowconfigure(3, weight=4)  # Media/QR/camera
+        self.grid_columnconfigure(0, weight=1)
+
+        self.key = self.controller.key
+        self.fingerprint_label.config(
+            text=f"Fingerprint: {self.key.fingerprint.__pretty__() if self.key else 'N/A'}",
+            font=self.controller.dynamic_font_small,
+        )
+        self.fingerprint_label.grid(row=0, column=0, sticky="ew", padx=10, pady=5)
+        self.attributes_display.grid(row=1, column=0, sticky="ew", padx=10, pady=5)
+        self.attributes_display.config(font=self.controller.dynamic_font_small)
+        self.media_display.grid(row=3, column=0, sticky="nsew")
+        self.media_display.grid_propagate(False)
+        self._set_ui_state(self.UI_STATE_LOAD_FILE)
+
+    def _set_ui_state(self, new_state):
+        """Centralized method to manage UI frame visibility and related setup."""
+        # Remove buttons from previous state
+        for widget in self.grid_slaves(row=BUTTONS_ROW, column=BUTTONS_COLUMN):
+            widget.grid_forget()
+
+        # Reset button row to default (can be overridden by specific states)
+        self.grid_rowconfigure(2, weight=1, minsize=self.controller.font_size * 4)
+
+        if new_state == self.UI_STATE_LOAD_FILE:
+            self.load_frame.grid(
+                row=BUTTONS_ROW, column=BUTTONS_COLUMN, sticky="nsew", pady=10
+            )
+            self.display_key_info()  # Resets file-specific data and updates display
+            self.media_display.load_default_image()
+        elif new_state == self.UI_STATE_SCAN:
+            self.scan_frame.grid(
+                row=BUTTONS_ROW, column=BUTTONS_COLUMN, sticky="nsew", pady=10
+            )
+            self._generate_sig_data()  # Generate signature data
+        elif new_state == self.UI_STATE_SAVE:
+            self.save_frame.grid(
+                row=BUTTONS_ROW, column=BUTTONS_COLUMN, sticky="nsew", pady=10
+            )
+            self.media_display.load_default_image()
+
     def back_from_scan(self):
         """Handles the back button from the scan frame."""
-        # Reset the UI to the load file state
-        self.scan_frame.grid_forget()
-        self.save_frame.grid_forget()
-        self.load_frame.grid(row=2, column=0, sticky="nsew", pady=10)
-        self.display_key_info()
-        self.media_display.load_default_image()
+        self._set_ui_state(self.UI_STATE_LOAD_FILE)
 
     def display_key_info(self):
         """Displays key information and resets the UI to the initial state."""
@@ -195,11 +221,6 @@ class SignFile(tk.Frame):
             self.attributes_display.insert(tk.END, content)
             self.attributes_display.config(state=state)
 
-    def _set_button_state(self, button, state=tk.NORMAL):
-        """Helper method to set button state."""
-        if button and button.winfo_exists():
-            button.config(state=state)
-
     def load_file(self):
         """Opens file dialog, loads file, calculates hash, generates sig_data."""
         file_path_str = filedialog.askopenfilename(title="Select File to Sign")
@@ -212,9 +233,14 @@ class SignFile(tk.Frame):
             self.file_data = self.file_path.read_bytes()
         except OSError as e:
             logging.error(f"Error reading file {self.file_path}: {e}")
-            self._update_attributes_display(f"Error reading file:\n{e}")
+            messagebox.showerror("File Error", f"Error reading file:\n{e}")
             return
+        self._set_ui_state(self.UI_STATE_SCAN)  # Switch to scan state
 
+    def _generate_sig_data(self):
+        """Generates the signature data from the file data."""
+        if not self.file_data:
+            raise ValueError("File data is empty or None.")
         # Hash the file data
         file_hash = hashlib.sha256(self.file_data).digest()
 
@@ -247,9 +273,6 @@ class SignFile(tk.Frame):
         sigdata_hash = hashlib.sha256(self.sig_data).hexdigest()
         self.media_display.export_qr_code_image(sigdata_hash)
 
-        self.load_frame.grid_forget()
-        self.scan_frame.grid(row=2, column=0, sticky="nsew", pady=10)
-
     def scan_qr(self):
         """Starts the QR code scanning process."""
         self.scan_frame.grid_forget()
@@ -267,17 +290,7 @@ class SignFile(tk.Frame):
             self.after(100, self.monitor_scan)
         else:
             # Scan aborted, show scan button again
-            self.grid_rowconfigure(
-                2, weight=1, minsize=self.controller.font_size * 4
-            ) 
-            self.scan_frame.grid(row=2, column=0, sticky="nsew", pady=10)
-            # Show QR code again
-            try:
-                self.media_display.export_qr_code_image(
-                    hashlib.sha256(self.sig_data).hexdigest()
-                )
-            except:
-                pass
+            self._set_ui_state(self.UI_STATE_SCAN)
 
     def _process_scanned_signature(self):
         """Processes the QR code data once found."""
@@ -308,9 +321,7 @@ class SignFile(tk.Frame):
             )
 
             # Update display with signature and validity
-            self._update_attributes_display(
-                f"{self.final_sig}\n", state=tk.NORMAL
-            )  # Keep NORMAL to add tags
+            self._update_attributes_display(f"{self.final_sig}\n", state=tk.NORMAL)
             if self.attributes_display:
                 self.attributes_display.tag_configure("valid", foreground="lime")
                 self.attributes_display.tag_configure("invalid", foreground="red")
@@ -325,9 +336,12 @@ class SignFile(tk.Frame):
             self.grid_rowconfigure(
                 2, weight=1, minsize=self.controller.font_size * 4
             )  # Buttons
-            if not valid_sig:
-                self.save_sig_button.config(state=tk.DISABLED)
-            self.save_frame.grid(row=2, column=0, sticky="nsew", pady=10)
+            if hasattr(self, "save_sig_button"):  # Ensure button exists
+                if valid_sig:
+                    self.save_sig_button.config(state=tk.NORMAL)
+                else:
+                    self.save_sig_button.config(state=tk.DISABLED)
+            self._set_ui_state(self.UI_STATE_SAVE)  # Switch to save state
             return
 
         except binascii.Error as e:
@@ -341,15 +355,8 @@ class SignFile(tk.Frame):
                 "Signature Processing Error", f"Error processing signature:\n{e}"
             )
 
-        # Show scan button and QR code again
-        self.grid_rowconfigure(
-            2, weight=1, minsize=self.controller.font_size * 4
-        )  # Buttons
-        if not self.scan_frame.winfo_ismapped():
-            self.scan_frame.grid(row=2, column=0, sticky="nsew", pady=10)
-        sigdata_hash = hashlib.sha256(self.sig_data).hexdigest()
-        self.media_display.export_qr_code_image(sigdata_hash)
-
+        # Restart the scan if an error occurs
+        self._set_ui_state(self.UI_STATE_SCAN)
 
     def save_sig(self):
         """Saves the generated signature to a file."""
@@ -375,7 +382,4 @@ class SignFile(tk.Frame):
 
     def sign_other_file(self):
         """Handles the action of signing another file."""
-        self.save_frame.grid_forget()
-        self.load_frame.grid(row=2, column=0, sticky="nsew", pady=10)
-        self.display_key_info()
-        self.media_display.load_default_image()
+        self._set_ui_state(self.UI_STATE_LOAD_FILE)

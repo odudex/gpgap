@@ -64,7 +64,7 @@ class LoginPage(tk.Frame):
             command=self.create_gpg_key_pair,
         )
         self.create_button.grid(row=2, column=0, sticky="nsew", padx=10, pady=5)
-        
+
         separator = ttk.Separator(self.menu_frame, orient="horizontal")
         separator.grid(row=3, column=0, sticky="ew", padx=10, pady=5)
 
@@ -94,7 +94,9 @@ class LoginPage(tk.Frame):
             # Show error to user through messagebox
             from tkinter import messagebox
 
-            messagebox.showerror("Error Loading Key", f"Failed to load GPG key: {str(e)}")
+            messagebox.showerror(
+                "Error Loading Key", f"Failed to load GPG key: {str(e)}"
+            )
 
     def create_gpg_key_pair(self):
         """

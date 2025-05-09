@@ -8,6 +8,7 @@ from pyzbar.pyzbar import decode
 
 RESIZE_DELAY = 100  # milliseconds
 
+
 class MediaDisplay(ttk.Frame):
     """
     A ttk.Frame subclass that can display a default image, generate and show QR codes,
@@ -43,10 +44,9 @@ class MediaDisplay(ttk.Frame):
         )
         self.current_image = None
         self.scaled_img = None
-        
+
         self.resize_timer_id = None
         self.media_label.bind("<Configure>", self._resize_debounce)
-
 
     def _resize_debounce(self, event):
         """
@@ -55,7 +55,7 @@ class MediaDisplay(ttk.Frame):
         if self.resize_timer_id:
             self.after_cancel(self.resize_timer_id)
         self.resize_timer_id = self.after(RESIZE_DELAY, self._on_resize)
-    
+
     def _on_resize(self):
         """
         Adjust the size of the media display area when the window is resized.
@@ -108,7 +108,9 @@ class MediaDisplay(ttk.Frame):
         qr = QRCode()
         qr.add_data(qr_data)
         qr.make(fit=True)
-        self.current_image = qr.make_image(fill_color="black", back_color="white").convert("RGB")
+        self.current_image = qr.make_image(
+            fill_color="black", back_color="white"
+        ).convert("RGB")
         img = self._resize_image_to_fit_label(self.current_image)
         img = ImageTk.PhotoImage(img)
         self.media_label.config(image=img, anchor="center")

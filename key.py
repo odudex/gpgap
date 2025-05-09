@@ -92,6 +92,4 @@ class KeyManager:
 
     def inject_key(self, injected_cert: bytes) -> None:
         """Inject a pubkey point from an existing key"""
-        self.cert_sig = self.key.add_uid(
-            self.uid, inject=injected_cert, **UID_PARAMS
-        )
+        self.cert_sig = self.key.add_uid(self.uid, inject=injected_cert, **UID_PARAMS)
