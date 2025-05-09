@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkfont
 from pages import LoginPage, SignFile, NewKey
+import time
 
 
 def configure_dpi():
@@ -43,8 +44,8 @@ class GPGap(tk.Tk):
         self.bg_color = "black"
         self.fg_color = "white"
         self.entry_bg = "#2a2a2a"
-        self.button_bg = "#4d4d4d"
-        self.button_active = "#5d5d5d"
+        self.button_bg = "black"
+        self.button_active = "#2d2d2d"
 
         # Configure ttk style
         self.style = ttk.Style()
@@ -58,7 +59,6 @@ class GPGap(tk.Tk):
         container = ttk.Frame(self)
         container.pack(fill="both", expand=True)
         container.grid_rowconfigure(0, weight=1)
-        container.grid_rowconfigure(1, weight=1)
         container.grid_columnconfigure(0, weight=1)
 
         # instantiate all pages and store in a dict
@@ -75,6 +75,10 @@ class GPGap(tk.Tk):
         self._calculate_font_size()
         self.dynamic_font.configure(size=self.font_size)
         self.dynamic_font_small.configure(size=(3 * self.font_size) // 4)
+
+        # Dynamic resize debouncing
+        self.resize_timer_id = None
+        self.resize_delay = 100  # milliseconds
 
         # Bind resize event to update font size
         self.bind("<Configure>", self._on_resize)
@@ -128,14 +132,24 @@ class GPGap(tk.Tk):
         """Handle window resize event to update font size."""
         # Only react to configure events on the main window itself
         if event.widget == self:
-            self._calculate_font_size()
+            # Cancel previous timer if it exists
+            if self.resize_timer_id:
+                self.after_cancel(self.resize_timer_id)
 
-            # Update font size only if it has changed
-            if self.font_size != self.dynamic_font.actual("size"):
-                self.dynamic_font.configure(size=self.font_size)
-                small_font_size = (3 * self.font_size) // 4
-                small_font_size = max(10, small_font_size)
-                self.dynamic_font_small.configure(size=small_font_size)
+            # Set a new timer
+            self.resize_timer_id = self.after(self.resize_delay, self._update_fonts)
+
+    def _update_fonts(self):
+        """Update fonts after resize has settled."""
+        self.resize_timer_id = None
+        self._calculate_font_size()
+
+        # Update font size only if it has changed
+        if self.font_size != self.dynamic_font.actual("size"):
+            self.dynamic_font.configure(size=self.font_size)
+            small_font_size = (3 * self.font_size) // 4
+            small_font_size = max(10, small_font_size)
+            self.dynamic_font_small.configure(size=small_font_size)
 
     def show_frame(self, page_name: str):
         """Raise the frame identified by page_name."""

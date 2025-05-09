@@ -58,7 +58,7 @@ class SignFile(tk.Frame):
 
     def on_show(self):
         """Called by the controller when the frame is shown."""
-        self.grid_rowconfigure(1, weight=2)  # Attributes and info
+        # self.grid_rowconfigure(1, weight=1)  # Attributes and info
         self.grid_rowconfigure(
             2, weight=1, minsize=self.controller.font_size * 4
         )  # Buttons
@@ -73,9 +73,10 @@ class SignFile(tk.Frame):
             font=self.controller.dynamic_font_small,
         )
         self.fingerprint_label.grid(row=0, column=0, sticky="ew", padx=10, pady=5)
-        self.attributes_display.grid(row=1, column=0, sticky="nsew", padx=10, pady=5)
+        self.attributes_display.grid(row=1, column=0, sticky="ew", padx=10, pady=5)
         self.attributes_display.config(font=self.controller.dynamic_font_small)
         self.media_display.grid(row=3, column=0, sticky="nsew")
+        self.media_display.grid_propagate(False)
         self.display_key_info()
         self.load_frame.grid(row=2, column=0, sticky="nsew", pady=10)
         self.media_display.load_default_image()
@@ -84,49 +85,70 @@ class SignFile(tk.Frame):
         self.load_frame = ttk.Frame(self)
         self.load_frame.grid_rowconfigure(0, weight=1)
         self.load_frame.grid_columnconfigure(0, weight=1)
-        self.load_frame.grid_columnconfigure(1, weight=1)
+        self.load_frame.grid_columnconfigure(2, weight=1)
         self.back_from_load_button = ttk.Button(
             self.load_frame,
             text="Back",
             command=lambda: self.controller.show_frame("LoginPage"),
         )
+
+        separator = ttk.Separator(self.load_frame, orient="vertical")
+        separator.grid(row=0, column=1, sticky="ns", padx=5, pady=5)
+
         self.back_from_load_button.grid(row=0, column=0, sticky="nsew", padx=10)
         self.load_file_button = ttk.Button(
             self.load_frame, text="Load a File to Sign", command=self.load_file
         )
-        self.load_file_button.grid(row=0, column=1, sticky="nsew", padx=10)
+        self.load_file_button.grid(row=0, column=2, sticky="nsew", padx=10)
 
     def create_scan_frame(self):
         self.scan_frame = ttk.Frame(self)
         self.scan_frame.grid_rowconfigure(0, weight=1)
         self.scan_frame.grid_columnconfigure(0, weight=1)
-        self.scan_frame.grid_columnconfigure(1, weight=1)
+        self.scan_frame.grid_columnconfigure(2, weight=1)
         self.back_from_scan_button = ttk.Button(
             self.scan_frame,
             text="Back",
             command=self.back_from_scan,
         )
         self.back_from_scan_button.grid(row=0, column=0, sticky="nsew", padx=10)
+
+        separator = ttk.Separator(self.scan_frame, orient="vertical")
+        separator.grid(row=0, column=1, sticky="ns", padx=5, pady=5)
+
         self.scan_qr_button = ttk.Button(
             self.scan_frame, text="Scan", command=self.scan_qr
         )
-        self.scan_qr_button.grid(row=0, column=1, sticky="nsew", padx=10)
+        self.scan_qr_button.grid(row=0, column=2, sticky="nsew", padx=10)
 
     def create_save_frame(self):
         self.save_frame = ttk.Frame(self)
         self.save_frame.grid_rowconfigure(0, weight=1)
         self.save_frame.grid_columnconfigure(0, weight=1)
-        self.save_frame.grid_columnconfigure(1, weight=1)
+        self.save_frame.grid_columnconfigure(2, weight=1)
+        self.save_frame.grid_columnconfigure(4, weight=1)
         self.save_sig_button = ttk.Button(
             self.save_frame, text="Save Signature", command=self.save_sig
         )
         self.save_sig_button.grid(row=0, column=0, sticky="nsew", padx=10)
+
+        separator = ttk.Separator(self.save_frame, orient="vertical")
+        separator.grid(row=0, column=1, sticky="ns", padx=5, pady=5)
+
+        self.other_sig_button = ttk.Button(
+            self.save_frame, text="Sign Other File", command=self.sign_other_file
+        )
+        self.other_sig_button.grid(row=0, column=2, sticky="nsew", padx=10)
+
+        separator = ttk.Separator(self.save_frame, orient="vertical")
+        separator.grid(row=0, column=3, sticky="ns", padx=5, pady=5)
+
         self.done_button = ttk.Button(
             self.save_frame,
             text="Done",
             command=lambda: self.controller.show_frame("LoginPage"),
         )
-        self.done_button.grid(row=0, column=1, sticky="nsew", padx=10)
+        self.done_button.grid(row=0, column=4, sticky="nsew", padx=10)
 
     def back_from_scan(self):
         """Handles the back button from the scan frame."""
@@ -152,28 +174,15 @@ class SignFile(tk.Frame):
         user_email = "N/A"
         info_text = ""
 
-        # Check if a key is available (updated in on_show)
-        if self.key:
-            # Safely get the first userid details
-            first_uid = next(iter(self.key.userids), None)
-            if first_uid:
-                user_name = first_uid.name
-                user_email = first_uid.email
-            # Set informative text for the display area
-            # valid_uid = bool(self.key.pubkey.verify(first_uid, first_uid.selfsig))
-            info_text = (
-                f"Name: {user_name}\n"
-                f"Email: {user_email}\n"
-                # f"Valid UID: {'Yes' if valid_uid else 'No'}\n\n"
-                f"You can now load a file to sign."
-            )
-            # Enable the file loading button as a key is present
-            self._set_button_state(self.load_file_button, tk.NORMAL)
-        else:
-            # Inform the user that no key is loaded
-            info_text = "No GPG key loaded.\nPlease load a key on the main page."
-            # Disable the file loading button as no key is present
-            self._set_button_state(self.load_file_button, tk.DISABLED)
+        first_uid = next(iter(self.key.userids), None)
+        if first_uid:
+            user_name = first_uid.name
+            user_email = first_uid.email
+        info_text = (
+            f"Name: {user_name}\n"
+            f"Email: {user_email}\n"
+            f"You can now load a file to sign."
+        )
 
         # Update the text display area
         self._update_attributes_display(info_text)
@@ -244,6 +253,7 @@ class SignFile(tk.Frame):
     def scan_qr(self):
         """Starts the QR code scanning process."""
         self.scan_frame.grid_forget()
+        self.grid_rowconfigure(2, weight=0, minsize=0)  # Shrink Buttons
         self.media_display.start_scan()  # Assuming this handles its own errors
         self.monitor_scan()
 
@@ -257,6 +267,9 @@ class SignFile(tk.Frame):
             self.after(100, self.monitor_scan)
         else:
             # Scan aborted, show scan button again
+            self.grid_rowconfigure(
+                2, weight=1, minsize=self.controller.font_size * 4
+            ) 
             self.scan_frame.grid(row=2, column=0, sticky="nsew", pady=10)
             # Show QR code again
             try:
@@ -309,6 +322,11 @@ class SignFile(tk.Frame):
                     state=tk.DISABLED
                 )  # Disable after adding tags
 
+            self.grid_rowconfigure(
+                2, weight=1, minsize=self.controller.font_size * 4
+            )  # Buttons
+            if not valid_sig:
+                self.save_sig_button.config(state=tk.DISABLED)
             self.save_frame.grid(row=2, column=0, sticky="nsew", pady=10)
             return
 
@@ -324,14 +342,14 @@ class SignFile(tk.Frame):
             )
 
         # Show scan button and QR code again
+        self.grid_rowconfigure(
+            2, weight=1, minsize=self.controller.font_size * 4
+        )  # Buttons
         if not self.scan_frame.winfo_ismapped():
             self.scan_frame.grid(row=2, column=0, sticky="nsew", pady=10)
         sigdata_hash = hashlib.sha256(self.sig_data).hexdigest()
         self.media_display.export_qr_code_image(sigdata_hash)
 
-    def show_save_options(self):
-        """Displays buttons to save the signature"""
-        self.scan_frame.grid_forget()
 
     def save_sig(self):
         """Saves the generated signature to a file."""
@@ -355,27 +373,9 @@ class SignFile(tk.Frame):
                     # Optionally show an error message to the user via the UI
                     self._update_attributes_display(f"Error saving signature:\n{e}")
 
-    def save_manifest(self):
-        """Saves a manifest file containing the original file's hash and name."""
-        if self.file_path and self.file_data:
-            initial_filename = self.file_path.name + DEFAULT_MANIFEST_EXTENSION
-            save_path_str = filedialog.asksaveasfilename(
-                defaultextension=DEFAULT_MANIFEST_EXTENSION,
-                filetypes=MANIFEST_FILE_TYPES,
-                initialfile=initial_filename,
-                title="Save Manifest As",
-            )
-            if save_path_str:
-                save_path = Path(save_path_str)
-                file_name = self.file_path.name  # Use Path.name
-                try:
-                    manifest_hash = hashlib.sha256(self.file_data).hexdigest()
-                    manifest_content = f"{manifest_hash} *{file_name}\n"
-                    save_path.write_text(
-                        manifest_content, encoding="utf-8"
-                    )  # Explicit encoding
-                    logging.info(f"Manifest saved to {save_path}")
-                except OSError as e:
-                    logging.error(f"Error saving manifest to {save_path}: {e}")
-                    # Optionally show an error message to the user via the UI
-                    self._update_attributes_display(f"Error saving manifest:\n{e}")
+    def sign_other_file(self):
+        """Handles the action of signing another file."""
+        self.save_frame.grid_forget()
+        self.load_frame.grid(row=2, column=0, sticky="nsew", pady=10)
+        self.display_key_info()
+        self.media_display.load_default_image()

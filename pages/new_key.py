@@ -8,8 +8,14 @@ from PGPy import pgpy
 from media import MediaDisplay
 from key import KeyManager
 from tkinter import messagebox
+import enum
 
-TEXT_WIDGET_HEIGHT = 10
+TEXT_WIDGET_HEIGHT = 5
+ENTRIES_ROW = 1
+ENTRIES_COLUMN = 0
+BUTTONS_ROW = 2
+BUTTONS_COLUMN = 0
+
 
 DEFAULT_PUBKEY_EXTENSION = ".asc"
 PUBKEY_FILE_TYPES = [("Public key files", f"*{DEFAULT_PUBKEY_EXTENSION}")]
@@ -29,12 +35,38 @@ CERTIFY_INFO = (
 )
 
 
+class KeyCreationState(enum.Enum):
+    """States for key creation process."""
+    COLLECTING_USER_INFO = 1
+    SCANNING_PUBKEY = 2
+    AWAITING_CERTIFICATION = 3
+    COMPLETED = 4
+
+
 class NewKey(tk.Frame):
+    """Page for new key creation."""
+
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
-        self.configure(bg=controller.bg_color)  # Comment this to debug widget areas
+        self.configure(bg=controller.bg_color)
 
+        # Initialize UI components
+        self._init_ui_components()
+        
+        # Initialize state management
+        self._init_state()
+        
+        # Register state handlers
+        self._state_handlers = {
+            KeyCreationState.COLLECTING_USER_INFO: self._handle_collecting_info,
+            KeyCreationState.SCANNING_PUBKEY: self._handle_scanning_pubkey,
+            KeyCreationState.AWAITING_CERTIFICATION: self._handle_awaiting_certification,
+            KeyCreationState.COMPLETED: self._handle_completed,
+        }
+
+    def _init_ui_components(self):
+        """Initialize all UI components."""
         self.attributes_display = tk.Text(
             self,
             wrap="word",
@@ -47,250 +79,348 @@ class NewKey(tk.Frame):
             pady=10,
         )
 
-        self.scan_buttons_frame = ttk.Frame(self)
         self.media_display = MediaDisplay(self, padding="10")
+        
+        # Frames that will be shown/hidden based on state
+        self.scan_buttons_frame = ttk.Frame(self)
+        self.user_info_frame = ttk.Frame(self)
+        self.pubkey_options_frame = ttk.Frame(self)
 
-        # UID variables
+    def _init_state(self):
+        """Initialize state variables."""
+        # Current state
+        self.current_state = None
+        
+        # User data state
         self.user_name = ""
         self.user_email = ""
-
-        # Key variables
+        
+        # Key state
         self.key_manager = KeyManager()
-        self.hex_key_material = None
         self.sig_data = None
         self.key = None
+        
+        # Error state
+        self.error_message = None
+        
+    def cleanup_camera(self):
+        """Ensure camera resources are released."""
+        if hasattr(self, 'media_display') and self.media_display.camera_running:
+            self.media_display.stop_scan()
+    
+    def __del__(self):
+        """Clean up resources when object is destroyed."""
+        self.cleanup_camera()
 
     def on_show(self):
         """Called when the frame is shown."""
+        # Clear previous UI
+        self._clear_ui()
+        
+        # Set up grid configuration
+        self._setup_grid()
+        
+        # Reset state and transition to initial state
+        self._init_state()
+        self._transition_to(KeyCreationState.COLLECTING_USER_INFO)
+
+    def _clear_ui(self):
+        """Clear all widgets from grid."""
         for widget in self.grid_slaves():
             widget.grid_forget()
+    
+    def _setup_grid(self):
+        """Set up the grid layout."""
         self.grid_rowconfigure(0, weight=1)  # Attributes and info
-        self.grid_rowconfigure(
-            1, weight=1, minsize=self.controller.font_size * 6
-        )  # Entries
-        self.grid_rowconfigure(
-            2, weight=1, minsize=self.controller.font_size * 4
-        )  # Buttons
-        self.grid_rowconfigure(3, weight=2)  # Media/QR/camera
+        self.grid_rowconfigure(ENTRIES_ROW, minsize=self.controller.font_size * 6)  # Entries
+        self.grid_rowconfigure(BUTTONS_ROW, weight=1, minsize=self.controller.font_size * 4)
+        self.grid_rowconfigure(3, weight=3)  # Media/QR/camera
         self.grid_columnconfigure(0, weight=1)
+        
+        # Common elements always visible
         self.attributes_display.config(font=self.controller.dynamic_font_small)
-        self.attributes_display.grid(row=0, column=0, sticky="nsew", padx=10, pady=5)
+        self.attributes_display.grid(row=0, column=0, sticky="nsew", padx=10, pady=(10,5))
         self.media_display.grid(row=3, column=0, sticky="nsew")
+        self.media_display.grid_propagate(False)
+    
+    def _transition_to(self, new_state):
+        """
+        Transition to a new state.
+        """
+        
+        # Clean up current state if needed
+        if self.current_state:
+            self._cleanup_current_state()
+        
+        # Update state
+        self.current_state = new_state
+        
+        # Call the appropriate state handler
+        if new_state in self._state_handlers:
+            self._state_handlers[new_state]()
+    
+    def _cleanup_current_state(self):
+        """Clean up resources for current state before transitioning."""
+        # Stop camera if running
+        self.cleanup_camera()
+        
+        # Remove entries from previous state
+        for widget in self.grid_slaves(row=ENTRIES_ROW, column=ENTRIES_COLUMN):
+            widget.grid_forget()
+        
+        # Remove buttons from previous state
+        for widget in self.grid_slaves(row=BUTTONS_ROW, column=BUTTONS_COLUMN):
+            widget.grid_forget()
+
+    
+    # State handlers
+    def _handle_collecting_info(self):
+        """Handle collecting user information state."""
+        self._update_attributes_display(METADATA_INFO)
         self.media_display.load_default_image()
-
-        self.collect_uid()
-
-    def collect_uid(self):
-        """Collect the UID from the user."""
-
-        # If coming back from the scan buttons, hide them
-        self.scan_buttons_frame.grid_forget()
-        # Frame to hold the Name and email entries
+        self._setup_user_info_frame()
+    
+    def _handle_scanning_pubkey(self):
+        """Handle scanning public key state."""
+        self._update_attributes_display(SCAN_PUB_KEY_INFO)
+        self.media_display.load_default_image()
+        self._setup_scan_buttons(
+            back_command=lambda: self._transition_to(KeyCreationState.COLLECTING_USER_INFO),
+            scan_command=lambda: self._start_scan(False)
+        )
+    
+    def _handle_awaiting_certification(self):
+        """Handle awaiting certification state."""
+        self._update_attributes_display(CERTIFY_INFO)
+        # Display QR code for certification
+        if self.sig_data:
+            self.media_display.export_qr_code_image(
+                hashlib.sha256(self.sig_data).hexdigest()
+            )
+        self._setup_scan_buttons(
+            back_command=lambda: self._transition_to(KeyCreationState.SCANNING_PUBKEY),
+            scan_command=lambda: self._start_scan(True)
+        )
+    
+    
+    def _handle_completed(self):
+        """Handle completed state."""
+        self._update_attributes_display(
+            "Key successfully certified.\n\n"
+            f"Key fingerprint:\n{self.key_manager.key.fingerprint.__pretty__()}\n\n"
+            "You can now save the key for later use, or load and use it to sign files right now."
+        )
+        self._setup_completed_options()
+        
+    # UI Setup methods
+    def _setup_user_info_frame(self):
+        """Set up user information entry frame."""
+        # Create frame for entries
         entry_frame = ttk.Frame(self)
-        entry_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=5)
+        self.user_info_frame = entry_frame
+        entry_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=5)
         entry_frame.rowconfigure(0, weight=1)
         entry_frame.rowconfigure(1, weight=1)
         entry_frame.columnconfigure(1, weight=1)
 
-        # Name Label + Entry
+        # Add name field
         name_label = ttk.Label(entry_frame, text="Name:")
-        name_label.grid(row=0, column=0, sticky="w", padx=5, pady=5)
+        name_label.grid(row=0, column=0, sticky="w", padx=5, pady=0)
         self.name_entry = ttk.Entry(entry_frame, font=self.controller.dynamic_font)
         self.name_entry.insert(0, self.user_name)
         self.name_entry.grid(row=0, column=1, sticky="ew", padx=(5, 10), pady=5)
-        # email Label + Entry
-        email_label = ttk.Label(entry_frame, text="email:")
-        email_label.grid(row=1, column=0, sticky="w", padx=5, pady=5)
+        
+        # Add email field
+        email_label = ttk.Label(entry_frame, text="Email:")
+        email_label.grid(row=1, column=0, sticky="w", padx=5, pady=0)
         self.email_entry = ttk.Entry(entry_frame, font=self.controller.dynamic_font)
         self.email_entry.insert(0, self.user_email)
         self.email_entry.grid(row=1, column=1, sticky="ew", padx=(5, 10), pady=5)
-        self._update_attributes_display(METADATA_INFO)
-
-        def load_entries():
-            """Load the name and email from the entries."""
-            self.user_name = self.name_entry.get()
-            self.user_email = self.email_entry.get()
-            if not self.user_name or not self.user_email:
-                messagebox.showerror("Input Error", "Both name and email are required.")
-                return
-            entry_frame.grid_forget()
-            self.rowconfigure(1, weight=0, minsize=0)  # Hide the entry slot
-            buttons_frame.grid_forget()
-            self.scan_raw_pubkey()
-
-        # Create a frame for the buttons
+        
+        # Add buttons frame
         buttons_frame = ttk.Frame(self)
         buttons_frame.rowconfigure(0, weight=1)
         buttons_frame.columnconfigure(0, weight=1)
-        buttons_frame.columnconfigure(1, weight=1)
-        buttons_frame.grid(row=2, column=0, sticky="nsew", padx=10, pady=5)
+        buttons_frame.columnconfigure(2, weight=1)
+        buttons_frame.grid(row=2, column=0, sticky="nsew", padx=5, pady=5)
 
-        self.back_btn = ttk.Button(
+        # Add back and next buttons
+        back_btn = ttk.Button(
             buttons_frame,
             text="Back",
-            command=lambda: self.controller.show_frame("LoginPage"),
+            command=lambda: self.controller.show_frame("LoginPage")
+        )
+        back_btn.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+
+        separator = ttk.Separator(buttons_frame, orient="vertical")
+        separator.grid(row=0, column=1, sticky="ns", padx=5, pady=5)
+
+        next_btn = ttk.Button(
+            buttons_frame, 
+            text="Next", 
+            command=self._validate_and_store_user_info
+        )
+        next_btn.grid(row=0, column=2, sticky="nsew", padx=5, pady=5)
+
+    def _validate_and_store_user_info(self):
+        """Validate and store user information."""
+        name = self.name_entry.get()
+        email = self.email_entry.get()
+        
+        if not name or not email:
+            messagebox.showerror("Input Error", "Both name and email are required.")
+            return
+        
+        if not self._validate_email(email):
+            messagebox.showerror("Input Error", "Please enter a valid email address.")
+            return
+        
+        # Store validated info
+        self.user_name = name
+        self.user_email = email
+        
+        # Shrinks entries frame
+        self.grid_rowconfigure(1, weight=0, minsize=0)
+        # Transition to next state
+        self._transition_to(KeyCreationState.SCANNING_PUBKEY)
+    
+    def _setup_scan_buttons(self, back_command, scan_command):
+        """Set up scan buttons with specified commands."""
+        self.grid_rowconfigure(BUTTONS_ROW, weight=1, minsize=self.controller.font_size * 4)
+        self.scan_buttons_frame.columnconfigure(0, weight=1)
+        self.scan_buttons_frame.columnconfigure(2, weight=1)
+        self.scan_buttons_frame.rowconfigure(0, weight=1)
+        self.scan_buttons_frame.grid(
+            row=2, column=0, sticky="nsew", padx=5, pady=5
+        )
+        
+        # Add back and scan buttons
+        self.back_btn = ttk.Button(
+            self.scan_buttons_frame, 
+            text="Back", 
+            command=back_command
         )
         self.back_btn.grid(row=0, column=0, sticky="nsew", padx=10, pady=5)
 
-        load_uid_btn = ttk.Button(buttons_frame, text="Next", command=load_entries)
-        load_uid_btn.grid(row=0, column=1, sticky="nsew", padx=10, pady=5)
+        separator = ttk.Separator(self.scan_buttons_frame, orient="vertical")
+        separator.grid(row=0, column=1, sticky="ns", padx=5, pady=5)
+        
+        self.scan_button = ttk.Button(
+            self.scan_buttons_frame, 
+            text="Scan", 
+            command=scan_command
+        )
+        self.scan_button.grid(row=0, column=2, sticky="nsew", padx=10, pady=5)
+    
+    def _setup_completed_options(self):
+        """Set up options for completed state."""
+        self.grid_rowconfigure(BUTTONS_ROW, weight=1, minsize=self.controller.font_size * 4)
+        self.pubkey_options_frame = ttk.Frame(self)
+        self.pubkey_options_frame.grid(
+            row=2, column=0, sticky="nsew", padx=5, pady=5
+        )
+        self.pubkey_options_frame.rowconfigure(0, weight=1)
+        self.pubkey_options_frame.columnconfigure(0, weight=1)
+        self.pubkey_options_frame.columnconfigure(2, weight=1)
 
-    def scan_raw_pubkey(self):
-        """Scan a raw public key from the camera."""
-        self._update_attributes_display(SCAN_PUB_KEY_INFO)
-        self.media_display.load_default_image()
-        # Create a frame for the buttons
-        if not self.scan_buttons_frame.winfo_ismapped():
-            self.scan_buttons_frame.columnconfigure(0, weight=1)
-            self.scan_buttons_frame.columnconfigure(1, weight=1)
-            self.scan_buttons_frame.rowconfigure(0, weight=1)
-            self.scan_buttons_frame.grid(
-                row=2, column=0, sticky="nsew", padx=10, pady=5
-            )
+        # Add save and load buttons
+        save_btn = ttk.Button(
+            self.pubkey_options_frame, 
+            text="Save Public Key", 
+            command=self.save_key
+        )
+        save_btn.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
-            # Create a back button
-            self.back_btn = ttk.Button(
-                self.scan_buttons_frame, text="Back", command=self.collect_uid
-            )
-            self.back_btn.grid(row=0, column=0, sticky="nsew", padx=10, pady=5)
-            self.scan_button = ttk.Button(
-                self.scan_buttons_frame, text="Scan", command=self.scan_qr
-            )
-            self.scan_button.grid(row=0, column=1, sticky="nsew", padx=10, pady=5)
-
-    def scan_qr(self, pub_certification=False):
+        separator = ttk.Separator(self.pubkey_options_frame, orient="vertical")
+        separator.grid(row=0, column=1, sticky="ns", padx=5, pady=5)
+        
+        load_btn = ttk.Button(
+            self.pubkey_options_frame, 
+            text="Load Key", 
+            command=self._load_new_key
+        )
+        load_btn.grid(row=0, column=2, sticky="nsew", padx=5, pady=5)
+    
+    
+    def _start_scan(self, is_certification):
         """Start the QR code scanning process."""
         self.scan_buttons_frame.grid_forget()
-        self.media_display.start_scan()
-        self.monitor_scan(pub_certification=pub_certification)
-
-    def monitor_scan(self, pub_certification=False):
-        """Checks for scanned QR code periodically."""
-        if self.media_display.qr_found:
-            self.media_display.stop_scan()
-            if pub_certification:
-                self._process_certification()
-            else:
-                self._process_pubkey()
-        elif self.media_display.camera_running:
-            # Schedule the next check
-            self.after(
-                100, lambda: self.monitor_scan(pub_certification=pub_certification)
-            )
-        else:
-            # Scan aborted, show scan button again
-            if self.scan_button and not self.scan_button.winfo_ismapped():
-                self.scan_buttons_frame.grid(
-                    row=2, column=0, sticky="nsew", padx=10, pady=5
-                )
-            # If certifying, show QR code again
-            if pub_certification:
-                try:
-                    self.media_display.export_qr_code_image(
-                        hashlib.sha256(self.sig_data).hexdigest()
-                    )
-                except:
-                    pass
-
-    def _process_pubkey(self):
-        """Process the scanned public key."""
-        # Get the scanned data
-        self.hex_key_material = self.media_display.qr_found
-        self.media_display.qr_found = None
-        # Checks if the scanned data is valid
+        self.grid_rowconfigure(BUTTONS_ROW, weight=0, minsize=0)
         try:
-            self.hex_key_material = bytes.fromhex(self.hex_key_material)
-            if len(self.hex_key_material) != 64:
-                raise ValueError("Invalid key material length.")
-        except ValueError as e:
-            logging.error(f"Error converting hex data: {e}")
-            messagebox.showerror("Scan Error", "Invalid QR code key data.")
-            self.scan_raw_pubkey()
+            self.media_display.start_scan()
+            self._monitor_scan(is_certification)
+        except Exception as e:
+            logging.error(f"Error starting scan: {e}")
+            self._setup_scan_buttons()
+            self.cleanup_camera()
+    
+    def _monitor_scan(self, is_certification):
+        """Monitor the QR code scanning process."""
+        if not self.media_display.camera_running:
+            # Camera was stopped externally
+            if is_certification:
+                self._transition_to(KeyCreationState.AWAITING_CERTIFICATION)
+            else:
+                self._transition_to(KeyCreationState.SCANNING_PUBKEY)
             return
-
+            
+        if self.media_display.qr_found:
+            self.cleanup_camera()
+            try:
+                if is_certification:
+                    self._process_certification_data()
+                else:
+                    self._process_pubkey_data()
+            except Exception as e:
+                messagebox.showerror("Scan Error", str(e))
+        else:
+            # Schedule next check
+            self.after(100, lambda: self._monitor_scan(is_certification))
+    
+    def _process_pubkey_data(self):
+        """Process the scanned public key data."""
+        hex_key_material = self.media_display.qr_found
         self.media_display.qr_found = None
-        self.sig_data = self.key_manager.create_key(
-            self.user_name,
-            self.user_email,
-            self.hex_key_material,
-        )
-        self.media_display.export_qr_code_image(
-            hashlib.sha256(self.sig_data).hexdigest()
-        )
-        self._scan_certification()
-
-    def _scan_certification(self):
-        self._update_attributes_display(CERTIFY_INFO)
-        if not self.scan_buttons_frame.winfo_ismapped():
-            self.scan_buttons_frame.grid(
-                row=2, column=0, sticky="nsew", padx=10, pady=5
+        
+        try:
+            key_material = bytes.fromhex(hex_key_material)
+            if len(key_material) != 64:
+                raise ValueError("Invalid key material length.")
+                
+            self.sig_data = self.key_manager.create_key(
+                self.user_name,
+                self.user_email,
+                key_material,
             )
-            # Redefine buttons
-            self.back_btn = ttk.Button(
-                self.scan_buttons_frame, text="Back", command=self.scan_raw_pubkey
-            )
-            self.back_btn.grid(row=0, column=0, sticky="nsew", padx=10, pady=5)
-            self.scan_button = ttk.Button(
-                self.scan_buttons_frame,
-                text="Scan",
-                command=lambda: self.scan_qr(pub_certification=True),
-            )
-            self.scan_button.grid(row=0, column=1, sticky="nsew", padx=10, pady=5)
-
-    def _process_certification(self):
-        """Process the scanned certification."""
-        # Get the scanned data
+            self._transition_to(KeyCreationState.AWAITING_CERTIFICATION)
+        except Exception as e:
+            messagebox.showerror("Scan Error", f"Error processing scanned pubkey:\n{e}")
+            self._transition_to(KeyCreationState.SCANNING_PUBKEY)
+    
+    def _process_certification_data(self):
+        """Process the scanned certification data."""
         scanned_data = self.media_display.qr_found
         self.media_display.qr_found = None
+        
         try:
             cert_bytes = binascii.a2b_base64(scanned_data)
-        except Exception as e:
-            logging.error(f"Error decoding base64 data: {e}")
-            messagebox.showerror("Scan Error", "Invalid QR code data.")
-            self.media_display.export_qr_code_image(
-                hashlib.sha256(self.sig_data).hexdigest()
-            )
-            self._scan_certification()
-            return
-        self.key_manager.inject_key(
-            inject=cert_bytes,
-        )
-        pubkey_str = str(self.key_manager.key.pubkey)
-        uid_valid_sig = False
-        try:
+            self.key_manager.inject_key(injected_cert=cert_bytes)
+            # Verify signature
+            pubkey_str = str(self.key_manager.key.pubkey)
             pubkey, _ = pgpy.PGPKey.from_blob(pubkey_str)
             first_uid = next(iter(pubkey.userids), None)
             uid_valid_sig = bool(pubkey.verify(first_uid, first_uid.selfsig))
+            
+            if uid_valid_sig:
+                self._transition_to(KeyCreationState.COMPLETED)
+            else:
+                raise ValueError("Signature verification failed.")
         except Exception as e:
-            logging.error(f"Error verifying signature: {e}")
-
-        self.scan_buttons_frame.grid_forget()
-
-        if not uid_valid_sig:
-            self._update_attributes_display("Key verification failed.")
-        else:
-            self._update_attributes_display(
-                "Key successfully certified.\n\n"
-                f"Key fingerprint:\n{self.key_manager.key.fingerprint.__pretty__()}\n\n"
-                "You can now save the key for later use, or load and use it to sign files right now."
-            )
-            self.pubkey_options_frame = ttk.Frame(self)
-            self.pubkey_options_frame.grid(
-                row=2, column=0, sticky="nsew", padx=10, pady=5
-            )
-            self.pubkey_options_frame.columnconfigure(0, weight=1)
-            self.pubkey_options_frame.columnconfigure(1, weight=1)
-            self.pubkey_options_frame.rowconfigure(0, weight=1)
-
-            self.save_btn = ttk.Button(
-                self.pubkey_options_frame, text="Save Public Key", command=self.save_key
-            )
-            self.save_btn.grid(row=0, column=0, sticky="nsew", padx=10, pady=5)
-            self.back_btn = ttk.Button(
-                self.pubkey_options_frame, text="Load Key", command=self._load_new_key
-            )
-            self.back_btn.grid(row=0, column=1, sticky="nsew", padx=10, pady=5)
-
+            messagebox.showerror("Scan Error", f"Error processing scanned certification:\n{e}")
+            self._transition_to(KeyCreationState.AWAITING_CERTIFICATION)
+        
+    
+    # Existing methods with minor modifications
     def save_key(self):
         """Save the key to a file."""
         initial_filename = f"{self.user_name}{DEFAULT_PUBKEY_EXTENSION}"
@@ -298,20 +428,22 @@ class NewKey(tk.Frame):
             defaultextension=DEFAULT_PUBKEY_EXTENSION,
             filetypes=PUBKEY_FILE_TYPES,
             initialfile=initial_filename,
-            title="Save Signature As",
+            title="Save Public Key As",
         )
+        
         if save_path_str:
             save_path = Path(save_path_str)
             pubkey_str = str(self.key_manager.key.pubkey)
             try:
-                save_path.write_text(pubkey_str, encoding="utf-8")  # Explicit encoding
-                logging.info(f"Signature saved to {save_path}")
+                save_path.write_text(pubkey_str, encoding="utf-8")
+                logging.info(f"Public key saved to {save_path}")
+                messagebox.showinfo("Save Successful", f"Public key saved to {save_path}")
             except OSError as e:
-                logging.error(f"Error saving signature to {save_path}: {e}")
-                # Optionally show an error message to the user via the UI
-                self._update_attributes_display(f"Error saving signature:\n{e}")
+                logging.error(f"Error saving public key to {save_path}: {e}")
+                messagebox.showerror("Save Error", f"Error saving public key:\n{e}")
 
     def _load_new_key(self):
+        """Load the created key and navigate to SignFile page."""
         self.controller.key = self.key_manager.key
         self.controller.show_frame("SignFile")
 
@@ -322,3 +454,10 @@ class NewKey(tk.Frame):
             self.attributes_display.delete(1.0, tk.END)
             self.attributes_display.insert(tk.END, content)
             self.attributes_display.config(state=state)
+
+    def _validate_email(self, email):
+        """Validate email format using a simple regex pattern."""
+        import re
+
+        pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+        return re.match(pattern, email) is not None
