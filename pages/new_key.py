@@ -20,18 +20,26 @@ BUTTONS_COLUMN = 0
 DEFAULT_PUBKEY_EXTENSION = ".asc"
 PUBKEY_FILE_TYPES = [("Public key files", f"*{DEFAULT_PUBKEY_EXTENSION}")]
 
-METADATA_INFO = "Fill your GPG public information.\n"
+METADATA_INFO = "Step 1/4\nFill your GPG public information.\n"
 
 SCAN_PUB_KEY_INFO = (
-    "On your Krux:\n"
-    " 1. Load a key as usual.\n"
-    " 2. Go to Wallet -> BIP85 -> GPG Key -> Index -> Create GPG Public Key.\n"
-    " 3. Scan the QR Code exported by Krux containing the public key curve point.\n"
+    "Step 2/4\n"
+    "  1. On your Krux:\n"
+    "    Create, backup and load a mnemonic as usual.\n"
+    "    (Bitcoin wallet settings won't affect GPG key)\n"
+    "  2. On Krux home menu, go to:\n"
+    "    Wallet -> BIP85 -> GPG Key -> Type an index -> Create GPG Public Key.\n"
+    "  3. On GPGap:\n"
+    "    Scan the QR Code exported by Krux containing the hex public key.\n"
 )
 CERTIFY_INFO = (
-    "To certify your key's UID, you need to self-sign it.\n"
-    ' 1. On your Krux, chose "Yes" to scan and sign key\'s metadata from QR code below.\n'
-    " 2. Scan the signature QR code exported by Krux.\n"
+    "Step 3/4\n"
+    "  1. On your Krux:"
+    '   Chose "Yes" to "Scan and sign GPG public key metadata".\n'
+    "  2. Still on your Krux:\n"
+    "    Scan the QR code from GPGap screen.\n"
+    "  3. On GPGap:\n"
+    "    Scan the signature QR code exported by Krux.\n"
 )
 
 
@@ -196,6 +204,7 @@ class NewKey(tk.Frame):
     def _handle_completed(self):
         """Handle completed state."""
         self._update_attributes_display(
+            "Step 4/4\n"
             "Key successfully certified.\n\n"
             f"Key fingerprint:\n{self.key_manager.key.fingerprint.__pretty__()}\n\n"
             "You can now save the key for later use, or load and use it to sign files right now."

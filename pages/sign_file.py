@@ -12,7 +12,7 @@ DEFAULT_SIG_EXTENSION = ".sig"
 SIG_FILE_TYPES = [("Signature files", f"*{DEFAULT_SIG_EXTENSION}")]
 DEFAULT_MANIFEST_EXTENSION = ".manifest.txt"
 MANIFEST_FILE_TYPES = [("Manifest files", f"*{DEFAULT_MANIFEST_EXTENSION}")]
-SIGNATURE_COMMENT = "Comment: GPGap experimental"
+SIGNATURE_COMMENT = "Comment: Krux/GPGap (experimental)"
 NOTATION_NAME = "signature"
 NOTATION_VALUE = "GPGap"
 
@@ -207,7 +207,6 @@ class SignFile(tk.Frame):
         info_text = (
             f"Name: {user_name}\n"
             f"Email: {user_email}\n"
-            f"You can now load a file to sign."
         )
 
         # Update the text display area
@@ -246,13 +245,15 @@ class SignFile(tk.Frame):
 
         # Display file path and hash
         self._update_attributes_display(
-            f"File Path: {self.file_path}\n"
-            f"File Hash: {file_hash.hex()}\n\n"
-            "On Krux, scan the QR code then sign the file.\n"
-            "1. Load your key\n"
-            "2. Go to Wallet -> BIP85 -> GPG Key -> Index -> Sign File with GPG\n"
-            "3. Scan the QR code below\n"
-            "4. Scan back Krux's signature QR code"
+            f"File Hash: {file_hash.hex()}\n"
+            "  1. On your Krux:\n"
+            "    Load your mnemonic (from which you derived your GPG key).\n"
+            "  2. On Krux home menu, go to:\n"
+            "    Wallet -> BIP85 -> GPG Key -> Type an index -> Sign File with GPG\n"
+            "  3. Still on your Krux:\n"
+            "    Scan the QR code from GPGap screen.\n"
+            "  4. On GPGap:\n"
+            "    Scan the signature QR code exported by Krux.\n"
         )
 
         # Generate sigdata
@@ -311,6 +312,9 @@ class SignFile(tk.Frame):
             # Verify the generated signature immediately
             valid_sig = bool(self.key.pubkey.verify(self.file_data, sig))
 
+            if not valid_sig:
+                raise ValueError("Invalid signature data.")
+
             # Store the final signature as a string
             self.final_sig = str(sig)
 
@@ -322,25 +326,10 @@ class SignFile(tk.Frame):
 
             # Update display with signature and validity
             self._update_attributes_display(f"{self.final_sig}\n", state=tk.NORMAL)
-            if self.attributes_display:
-                self.attributes_display.tag_configure("valid", foreground="lime")
-                self.attributes_display.tag_configure("invalid", foreground="red")
-                if valid_sig:
-                    self.attributes_display.insert("end", "Signature is valid", "valid")
-                else:
-                    self.attributes_display.insert("end", "Bad Signature", "invalid")
-                self.attributes_display.config(
-                    state=tk.DISABLED
-                )  # Disable after adding tags
 
             self.grid_rowconfigure(
                 2, weight=1, minsize=self.controller.font_size * 4
             )  # Buttons
-            if hasattr(self, "save_sig_button"):  # Ensure button exists
-                if valid_sig:
-                    self.save_sig_button.config(state=tk.NORMAL)
-                else:
-                    self.save_sig_button.config(state=tk.DISABLED)
             self._set_ui_state(self.UI_STATE_SAVE)  # Switch to save state
             return
 
@@ -374,6 +363,10 @@ class SignFile(tk.Frame):
                     save_path.write_text(
                         self.final_sig, encoding="utf-8"
                     )  # Explicit encoding
+                    messagebox.showinfo(
+                        "Signature Saved",
+                        f"Signature saved to {save_path}",
+                    )
                     logging.info(f"Signature saved to {save_path}")
                 except OSError as e:
                     logging.error(f"Error saving signature to {save_path}: {e}")
