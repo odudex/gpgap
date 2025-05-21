@@ -8,7 +8,6 @@ from PGPy import pgpy
 from media import MediaDisplay
 from key import KeyManager
 from tkinter import messagebox
-import enum
 
 TEXT_WIDGET_HEIGHT = 5
 ENTRIES_ROW = 1
@@ -256,7 +255,7 @@ class NewKey(tk.Frame):
         # Add back and next buttons
         back_btn = ttk.Button(
             user_info_buttons_frame,
-            text="Back",
+            text="< Back",
             command=lambda: self.controller.show_frame("LoginPage"),
         )
         back_btn.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
@@ -305,7 +304,7 @@ class NewKey(tk.Frame):
 
         # Add back and scan buttons
         self.back_btn = ttk.Button(
-            self.scan_buttons_frame, text="Back", command=back_command
+            self.scan_buttons_frame, text="< Back", command=back_command
         )
         self.back_btn.grid(row=0, column=0, sticky="nsew", padx=10, pady=5)
 
@@ -462,9 +461,9 @@ class NewKey(tk.Frame):
                 messagebox.showerror("Save Error", f"Error saving public key:\n{e}")
 
     def _load_new_key(self):
-        """Load the created key and navigate to SignFile page."""
+        """Load the created key and navigate to Sign page."""
         self.controller.key = self.key_manager.key
-        self.controller.show_frame("SignFile")
+        self.controller.show_frame("SignPage")
 
     def _update_attributes_display(self, content, state=tk.DISABLED):
         """Helper method to update the text widget."""

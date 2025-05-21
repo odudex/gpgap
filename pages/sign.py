@@ -21,7 +21,7 @@ BUTTONS_ROW = 2
 BUTTONS_COLUMN = 0
 
 
-class SignFile(tk.Frame):
+class SignPage(tk.Frame):
     """Class to handle file signing"""
 
     # UI states
@@ -70,20 +70,32 @@ class SignFile(tk.Frame):
         self.load_frame.grid_rowconfigure(0, weight=1)
         self.load_frame.grid_columnconfigure(0, weight=1)
         self.load_frame.grid_columnconfigure(2, weight=1)
+        self.load_frame.grid_columnconfigure(4, weight=1)
         self.back_from_load_button = ttk.Button(
             self.load_frame,
-            text="Back",
+            text="< Back",
             command=lambda: self.controller.show_frame("LoginPage"),
         )
+        self.back_from_load_button.grid(row=0, column=0, sticky="nsew", padx=10)
 
         separator = ttk.Separator(self.load_frame, orient="vertical")
         separator.grid(row=0, column=1, sticky="ns", padx=5, pady=5)
 
-        self.back_from_load_button.grid(row=0, column=0, sticky="nsew", padx=10)
         self.load_file_button = ttk.Button(
-            self.load_frame, text="Load a File to Sign", command=self.load_file
+            self.load_frame, text="Sign File", command=self._load_file
         )
         self.load_file_button.grid(row=0, column=2, sticky="nsew", padx=10)
+
+        separator = ttk.Separator(self.load_frame, orient="vertical")
+        separator.grid(row=0, column=3, sticky="ns", padx=5, pady=5)
+
+        self.load_git_project_folder = ttk.Button(
+            self.load_frame,
+            text="Sign Git Commits",
+            command=lambda: self.controller.show_frame("SignCommits"),
+        )
+        self.load_git_project_folder.grid(row=0, column=4, sticky="nsew", padx=10)
+
 
     def create_scan_frame(self):
         self.scan_frame = ttk.Frame(self)
@@ -92,7 +104,7 @@ class SignFile(tk.Frame):
         self.scan_frame.grid_columnconfigure(2, weight=1)
         self.back_from_scan_button = ttk.Button(
             self.scan_frame,
-            text="Back",
+            text="< Back",
             command=self.back_from_scan,
         )
         self.back_from_scan_button.grid(row=0, column=0, sticky="nsew", padx=10)
@@ -136,9 +148,10 @@ class SignFile(tk.Frame):
 
     def on_show(self):
         """Called by the controller when the frame is shown."""
-        # self.grid_rowconfigure(1, weight=1)  # Attributes and info
+        # Fingerprint label won't expand
+        # Attributes display won't expand
         self.grid_rowconfigure(
-            2, weight=1, minsize=self.controller.font_size * 4
+            BUTTONS_ROW, weight=1, minsize=self.controller.font_size * 4
         )  # Buttons
         self.grid_rowconfigure(3, weight=4)  # Media/QR/camera
         self.grid_columnconfigure(0, weight=1)
@@ -162,7 +175,7 @@ class SignFile(tk.Frame):
             widget.grid_forget()
 
         # Reset button row to default (can be overridden by specific states)
-        self.grid_rowconfigure(2, weight=1, minsize=self.controller.font_size * 4)
+        self.grid_rowconfigure(BUTTONS_ROW, weight=1, minsize=self.controller.font_size * 4)
 
         if new_state == self.UI_STATE_LOAD_FILE:
             self.load_frame.grid(
@@ -220,7 +233,7 @@ class SignFile(tk.Frame):
             self.attributes_display.insert(tk.END, content)
             self.attributes_display.config(state=state)
 
-    def load_file(self):
+    def _load_file(self):
         """Opens file dialog, loads file, calculates hash, generates sig_data."""
         file_path_str = filedialog.askopenfilename(title="Select File to Sign")
         if not file_path_str:
@@ -277,7 +290,7 @@ class SignFile(tk.Frame):
     def scan_qr(self):
         """Starts the QR code scanning process."""
         self.scan_frame.grid_forget()
-        self.grid_rowconfigure(2, weight=0, minsize=0)  # Shrink Buttons
+        self.grid_rowconfigure(BUTTONS_ROW, weight=0, minsize=0)  # Shrink Buttons
         self.media_display.start_scan()  # Assuming this handles its own errors
         self.monitor_scan()
 
@@ -328,7 +341,7 @@ class SignFile(tk.Frame):
             self._update_attributes_display(f"{self.final_sig}\n", state=tk.NORMAL)
 
             self.grid_rowconfigure(
-                2, weight=1, minsize=self.controller.font_size * 4
+                BUTTONS_ROW, weight=1, minsize=self.controller.font_size * 4
             )  # Buttons
             self._set_ui_state(self.UI_STATE_SAVE)  # Switch to save state
             return

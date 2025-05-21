@@ -2,8 +2,7 @@ import sys
 import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkfont
-from pages import LoginPage, SignFile, NewKey
-import time
+from pages import LoginPage, SignPage, NewKey, SignCommits
 
 
 def configure_dpi():
@@ -63,7 +62,7 @@ class GPGap(tk.Tk):
 
         # instantiate all pages and store in a dict
         self.frames = {}
-        for Page in (LoginPage, SignFile, NewKey):
+        for Page in (LoginPage, SignPage, NewKey, SignCommits):
             page_name = Page.__name__
             frame = Page(parent=container, controller=self)
             self.frames[page_name] = frame

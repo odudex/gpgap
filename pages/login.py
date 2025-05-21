@@ -71,7 +71,7 @@ class LoginPage(tk.Frame):
     def open_gpg_file(self):
         """
         Open a file dialog to select and load a GPG public key file.
-        If successful, loads the key into the application and navigates to the SignFile page.
+        If successful, loads the key into the application and navigates to the Sign page.
         """
         file_path = filedialog.askopenfilename(
             title="Open GPG Public Key",
@@ -87,7 +87,7 @@ class LoginPage(tk.Frame):
 
             pubkey, _ = pgpy.PGPKey.from_blob(key_data)
             self.controller.key = KeyManager().load_key(pubkey)
-            self.controller.show_frame("SignFile")
+            self.controller.show_frame("SignPage")
 
         except Exception as e:
             print(f"Error: {str(e)}")
