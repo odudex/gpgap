@@ -4,7 +4,22 @@ from tkinter import ttk
 import tkinter.font as tkfont
 from pages import LoginPage, SignFile, NewKey
 from tkinter import TclError
-import importlib.metadata
+from pathlib import Path
+
+try:
+    import tomllib as toml
+except ImportError:
+    # Python 3.9/3.10, install tomli
+    import tomli as toml
+
+def get_full_version() -> str:
+    # Read version from pyproject.toml if running from source
+    pyproject = Path(__file__).resolve().parent / "pyproject.toml"
+    if pyproject.exists():
+        with pyproject.open("rb") as f:
+            data = toml.load(f)
+        return data.get("tool", {}).get("poetry", {}).get("version", "unknown")
+    return "unknown"
 
 
 def configure_dpi():
@@ -26,7 +41,7 @@ class GPGap(tk.Tk):
 
     def __init__(self):
         super().__init__()
-        self.title("GPGap - Air-gapped GPG (%s)" % importlib.metadata.version('gpgap'))
+        self.title("GPGap - Air-gapped GPG (%s)" % get_full_version())
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
         self.minsize(screen_width // 3, screen_height // 3)

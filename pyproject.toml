@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "gpgap"
-version = "0.1.0"
+version = "25.05.alpha4"
 description = "Air-gapped GPG key and signature assistant"
 authors = ["Odudex <odudex@proton.me>"]
 readme = "README.md"

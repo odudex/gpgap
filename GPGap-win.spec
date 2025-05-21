@@ -4,7 +4,10 @@ a = Analysis(
     ['gpgap.py'],
     pathex=['C:\\Users\\Odudex\\AppData\\Local\\pypoetry\\Cache\\virtualenvs\\gpgap-v-HHYl7C-py3.13\\Lib\\site-packages'],
     binaries=[('dlls/libiconv.dll', '.'), ('dlls/libzbar-64.dll', '.')],
-    datas=[('assets', 'assets')],
+    datas=[
+        ('assets', 'assets'),
+        ("pyproject.toml", "."),
+        ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

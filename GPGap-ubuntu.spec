@@ -10,6 +10,7 @@ a = Analysis(
         # include current Poetry venv site-packages
         (sysconfig.get_paths()['purelib'], '.'),
         ('assets/*', 'assets'),
+        ("pyproject.toml", "."),
     ],
     hiddenimports=[],
     hookspath=[],
