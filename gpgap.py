@@ -3,7 +3,8 @@ import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkfont
 from pages import LoginPage, SignFile, NewKey
-import time
+from tkinter import TclError
+import importlib.metadata
 
 
 def configure_dpi():
@@ -25,7 +26,7 @@ class GPGap(tk.Tk):
 
     def __init__(self):
         super().__init__()
-        self.title("GPGap - Air-gapped GPG")
+        self.title("GPGap - Air-gapped GPG (%s)" % importlib.metadata.version('gpgap'))
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
         self.minsize(screen_width // 3, screen_height // 3)
@@ -46,6 +47,8 @@ class GPGap(tk.Tk):
         self.entry_bg = "#2a2a2a"
         self.button_bg = "black"
         self.button_active = "#2d2d2d"
+        self.button_pressed = "#1B1B1B"
+        self.button_fg_pressed = "#be1a1a"
 
         # Configure ttk style
         self.style = ttk.Style()
@@ -99,6 +102,15 @@ class GPGap(tk.Tk):
             font=self.dynamic_font,
         )
         self.style.configure("TFrame", background=self.bg_color)
+        self.option_add("*TButton.Cursor", "hand2")
+        self.option_add("*TMenubutton.Cursor", "hand2")
+        self.option_add("*TCheckbutton.Cursor", "hand2")
+        self.option_add('*Menu.foreground', self.fg_color)
+        self.option_add('*Menu.selectColor', self.bg_color)
+        self.option_add('*Menu.font', self.dynamic_font)
+        self.option_add('*Menu.background', self.button_bg)
+        self.option_add('*Menu.activeBackground', self.button_pressed)
+        self.option_add('*Menu.activeForeground', self.button_fg_pressed)
         self.style.configure(
             "TLabel",
             background=self.bg_color,
@@ -117,7 +129,8 @@ class GPGap(tk.Tk):
         )
         self.style.map(
             "TButton",
-            background=[("active", self.button_active)],
+            foreground=[("pressed", self.button_fg_pressed)],
+            background=[("pressed", self.button_pressed), ("active", self.button_active)],
             relief=[("pressed", "sunken")],
         )
         self.style.configure(
@@ -126,6 +139,21 @@ class GPGap(tk.Tk):
             foreground=self.fg_color,
             insertcolor=self.fg_color,
             font=self.dynamic_font,
+        )
+        self.style.configure("TMenubutton",
+            background=self.button_bg,
+            relief="flat",
+        )
+        self.style.map("TMenubutton",
+            background=[("pressed", self.button_pressed), ("active", self.button_active)],
+        )
+        self.style.configure("TCheckbutton",
+            background=self.button_bg,
+            relief="flat",
+        )
+        self.style.map("TCheckbutton",
+            foreground=[("pressed", self.button_fg_pressed)],
+            background=[("pressed", self.button_pressed), ("active", self.button_active)],
         )
 
     def _on_resize(self, event):
@@ -165,5 +193,21 @@ class GPGap(tk.Tk):
 
 if __name__ == "__main__":
     app = GPGap()
+
+    # Little Hack to not show hidden files and add a button to show if user want
+    try:
+        # call a dummy dialog with an impossible option to initialize the file
+        # dialog without really getting a dialog window; this will throw a
+        # TclError, so we need a try...except :
+        try:
+            app.tk.call('tk_getOpenFile', '-foobarbaz')
+        except TclError:
+            pass
+        # now set the magic variables accordingly
+        app.tk.call('set', '::tk::dialog::file::showHiddenBtn', '1')
+        app.tk.call('set', '::tk::dialog::file::showHiddenVar', '0')
+    except:
+        pass
+
     app.protocol("WM_DELETE_WINDOW", app.on_closing)
     app.mainloop()

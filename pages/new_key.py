@@ -9,6 +9,7 @@ from media import MediaDisplay
 from key import KeyManager
 from tkinter import messagebox
 import enum
+import os
 
 TEXT_WIDGET_HEIGHT = 5
 ENTRIES_ROW = 1
@@ -271,6 +272,9 @@ class NewKey(tk.Frame):
         )
         next_btn.grid(row=0, column=2, sticky="nsew", padx=5, pady=5)
 
+        separator = ttk.Separator(user_info_buttons_frame, orient="horizontal")
+        separator.grid(row=1, column=0, columnspan=3, sticky="ew", padx=5, pady=5)
+
     def _validate_and_store_user_info(self):
         """Validate and store user information."""
         name = self.name_entry.get()
@@ -317,6 +321,9 @@ class NewKey(tk.Frame):
         )
         self.scan_button.grid(row=0, column=2, sticky="nsew", padx=10, pady=5)
 
+        separator = ttk.Separator(self.scan_buttons_frame, orient="horizontal")
+        separator.grid(row=1, column=0, columnspan=3, sticky="ew", padx=5, pady=5)
+
     def _setup_completed_options(self):
         """Set up options for completed state."""
         self.grid_rowconfigure(
@@ -348,6 +355,9 @@ class NewKey(tk.Frame):
             self.pubkey_options_frame, text="Load Key", command=self._load_new_key
         )
         load_btn.grid(row=0, column=2, sticky="nsew", padx=5, pady=5)
+
+        separator = ttk.Separator(self.pubkey_options_frame, orient="horizontal")
+        separator.grid(row=1, column=0, columnspan=3, sticky="ew", padx=5, pady=5)
 
     def _start_scan(self, is_certification):
         """Start the QR code scanning process."""
@@ -445,6 +455,7 @@ class NewKey(tk.Frame):
             defaultextension=DEFAULT_PUBKEY_EXTENSION,
             filetypes=PUBKEY_FILE_TYPES,
             initialfile=initial_filename,
+            initialdir=os.path.expanduser('~'),
             title="Save Public Key As",
         )
 

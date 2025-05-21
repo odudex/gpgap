@@ -3,7 +3,14 @@ from tkinter import ttk, filedialog
 from PGPy import pgpy
 from media import MediaDisplay
 from key import KeyManager
+import sys
+import os
 
+PAD_X = 10
+PAD_Y = 5
+PADDING = "10"
+STICKY_ALL = "nsew"
+STICKY_HORIZONTAL = "ew"
 
 class LoginPage(tk.Frame):
     """
@@ -21,18 +28,19 @@ class LoginPage(tk.Frame):
         screen_height = self.winfo_screenheight()
         min_height = screen_height // 4
         self.grid_rowconfigure(0, weight=1, minsize=min_height)
-        self.grid_rowconfigure(1, weight=2)
+        self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
-        self.menu_frame = ttk.Frame(self, padding="10")
-        self.menu_frame.grid(row=0, column=0, sticky="nsew")
+        self.menu_frame = ttk.Frame(self, padding=PADDING)
+        self.menu_frame.grid(row=0, column=0, sticky=STICKY_ALL)
         self.menu_frame.grid_rowconfigure(0, weight=1)
         self.menu_frame.grid_rowconfigure(2, weight=1)
+        self.menu_frame.grid_rowconfigure(4, weight=1)
         self.menu_frame.grid_columnconfigure(0, weight=1)
 
         # Media/QR/camera display
-        self.media_display = MediaDisplay(self, padding="10")
-        self.media_display.grid(row=1, column=0, sticky="nsew")
+        self.media_display = MediaDisplay(self, padding=PADDING)
+        self.media_display.grid(row=1, column=0, sticky=STICKY_ALL)
 
         # Pubkey frame widgets
         self.setup_menu_frame()
@@ -48,14 +56,17 @@ class LoginPage(tk.Frame):
         """
         Configure and place the buttons for key management in the menu frame.
         """
+        row = 0
         # Pubkey load button
         self.open_button = ttk.Button(
             self.menu_frame, text="Load GPG Public Key", command=self.open_gpg_file
         )
-        self.open_button.grid(row=0, column=0, sticky="nsew", padx=10, pady=5)
+        self.open_button.grid(row=row, column=0, sticky=STICKY_ALL, padx=PAD_X, pady=PAD_Y)
+        row +=1
 
         separator = ttk.Separator(self.menu_frame, orient="horizontal")
-        separator.grid(row=1, column=0, sticky="ew", padx=10, pady=5)
+        separator.grid(row=row, column=0, sticky=STICKY_HORIZONTAL, padx=PAD_X, pady=PAD_Y)
+        row +=1
 
         # Pubkey create button
         self.create_button = ttk.Button(
@@ -63,10 +74,25 @@ class LoginPage(tk.Frame):
             text="Create GPG Key Pair",
             command=self.create_gpg_key_pair,
         )
-        self.create_button.grid(row=2, column=0, sticky="nsew", padx=10, pady=5)
+        self.create_button.grid(row=row, column=0, sticky=STICKY_ALL, padx=PAD_X, pady=PAD_Y)
+        row +=1
 
         separator = ttk.Separator(self.menu_frame, orient="horizontal")
-        separator.grid(row=3, column=0, sticky="ew", padx=10, pady=5)
+        separator.grid(row=row, column=0, sticky=STICKY_HORIZONTAL, padx=PAD_X, pady=PAD_Y)
+        row +=1
+
+        # Exit button
+        self.create_button = ttk.Button(
+            self.menu_frame,
+            text="Exit",
+            command=sys.exit,
+        )
+        self.create_button.grid(row=row, column=0, sticky=STICKY_ALL, padx=PAD_X, pady=PAD_Y)
+        row +=1
+
+        separator = ttk.Separator(self.menu_frame, orient="horizontal")
+        separator.grid(row=row, column=0, sticky=STICKY_HORIZONTAL, padx=PAD_X, pady=PAD_Y)
+        row +=1
 
     def open_gpg_file(self):
         """
@@ -75,6 +101,7 @@ class LoginPage(tk.Frame):
         """
         file_path = filedialog.askopenfilename(
             title="Open GPG Public Key",
+            initialdir=os.path.expanduser('~'),
             filetypes=[("GPG Files", "*.asc *.pgp"), ("All Files", "*.*")],
         )
 

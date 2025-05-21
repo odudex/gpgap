@@ -85,6 +85,9 @@ class SignFile(tk.Frame):
         )
         self.load_file_button.grid(row=0, column=2, sticky="nsew", padx=10)
 
+        separator = ttk.Separator(self.load_frame, orient="horizontal")
+        separator.grid(row=1, column=0, columnspan=3, sticky="ew", padx=5, pady=5)
+
     def create_scan_frame(self):
         self.scan_frame = ttk.Frame(self)
         self.scan_frame.grid_rowconfigure(0, weight=1)
@@ -104,6 +107,9 @@ class SignFile(tk.Frame):
             self.scan_frame, text="Scan", command=self.scan_qr
         )
         self.scan_qr_button.grid(row=0, column=2, sticky="nsew", padx=10)
+
+        separator = ttk.Separator(self.scan_frame, orient="horizontal")
+        separator.grid(row=1, column=0, columnspan=3, sticky="ew", padx=5, pady=5)
 
     def create_save_frame(self):
         self.save_frame = ttk.Frame(self)
@@ -133,6 +139,9 @@ class SignFile(tk.Frame):
             command=lambda: self.controller.show_frame("LoginPage"),
         )
         self.done_button.grid(row=0, column=4, sticky="nsew", padx=10)
+
+        separator = ttk.Separator(self.save_frame, orient="horizontal")
+        separator.grid(row=1, column=0, columnspan=5, sticky="ew", padx=5, pady=5)
 
     def on_show(self):
         """Called by the controller when the frame is shown."""
